@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
 		name: "NextTokuzouKit PWA",
 		short_name: "TokuzouKit!",
 		description: "NextJSを使用して構築されたフルスタック実装キット",
-		start_url: "/",
+		start_url: "/home",
 		display: "standalone",
 		background_color: "#ffffff",
 		theme_color: "#000000",
