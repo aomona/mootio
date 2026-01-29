@@ -14,7 +14,7 @@ export default defineConfig({
 	dialect: "postgresql",
 	dbCredentials: {
 		url:
-			process.env.NODE_ENV === "test"
+			process.env.NODE_ENV === "test" || process.env.NODE_ENV === "production"
 				? process.env.DATABASE_URL
 				: createDBUrl({}),
 	},
