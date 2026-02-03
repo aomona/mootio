@@ -6,6 +6,7 @@ export default function manifest(): MetadataRoute.Manifest {
 		short_name: "Mootio",
 		description: "チェーンを繋いで、健康に",
 		start_url: "/app/shake ",
+		id: "/app/shake ",
 		display: "standalone",
 		background_color: "#ffffff",
 		theme_color: "#C2E812",
