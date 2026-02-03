@@ -1,29 +1,28 @@
 "use client";
-import { ProfileCard } from "@/components/profile-card";
+
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
+
 import { authClient } from "@/lib/auth-client";
 
-export default function HomePage() {
-	const { data: session } = authClient.useSession();
+export default function ProfileIndexPage() {
+	const router = useRouter();
+	const { data: session, isPending } = authClient.useSession();
 
-	const mockProfile = {
-		bio: "Product designer focused on music and community.",
-		avatarSrc: "/icon512_rounded.png",
-		avatarAlt: "Profile avatar",
-		followersCount: 1280,
-		followingCount: 312,
-	};
+	useEffect(() => {
+		if (isPending) {
+			return;
+		}
+		const userId = session?.user?.id;
+		if (!userId) {
+			return;
+		}
+		router.replace(`/app/profile/${userId}`);
+	}, [isPending, router, session?.user?.id]);
 
 	return (
-		<div className=" relative w-screen">
-			<div className=" flex flex-col items-center pt-10 pb-5 text-black">
-				<h2 className="font-bold text-lg">自分のプロフィール</h2>
-			</div>
-			<ProfileCard
-				type="mine"
-				{...mockProfile}
-				name={session?.user.name || ""}
-				className=" mx-auto"
-			/>
+		<div className="mx-auto w-[345px] pt-20 text-center text-sm text-black/70">
+			プロフィールを読み込み中...
 		</div>
 	);
 }

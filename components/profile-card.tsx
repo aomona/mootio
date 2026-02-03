@@ -1,6 +1,7 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { Camera } from "lucide-react";
+import type { ChangeEvent, ReactNode } from "react";
 
 type ProfileCardVariant = "has-follow" | "mine" | "editing" | "following";
 
@@ -12,6 +13,10 @@ type ProfileCardProps = {
 	bio: string;
 	avatarSrc: string;
 	avatarAlt?: string;
+	isAvatarEditable?: boolean;
+	onAvatarChange?: (file: File) => void;
+	avatarInputAriaLabel?: string;
+	avatarActionLabel?: string;
 	followersCount?: number | string;
 	followingCount?: number | string;
 	followersLabel?: string;
@@ -66,6 +71,10 @@ export function ProfileCard({
 	bio,
 	avatarSrc,
 	avatarAlt = "",
+	isAvatarEditable = false,
+	onAvatarChange,
+	avatarInputAriaLabel = "プロフィール画像を変更",
+	avatarActionLabel = "画像変更",
 	followersCount = 0,
 	followingCount = 0,
 	followersLabel = "フォロワー",
@@ -108,6 +117,14 @@ export function ProfileCard({
 		: (editIcon ?? <DefaultEditIcon className="size-6" />);
 	const resolvedName = nameValue ?? name;
 	const resolvedBio = bioValue ?? bio;
+	const showAvatarControl = isAvatarEditable && !!onAvatarChange;
+	const handleAvatarChange = (event: ChangeEvent<HTMLInputElement>) => {
+		const file = event.currentTarget.files?.[0];
+		if (file) {
+			onAvatarChange?.(file);
+		}
+		event.currentTarget.value = "";
+	};
 
 	return (
 		<div className={rootClassName}>
@@ -125,7 +142,7 @@ export function ProfileCard({
 							<div className="w-full rounded-[12px] bg-[var(--bg-transparent,rgba(255,255,255,0.12))] px-4 py-4">
 								<input
 									aria-label="Name"
-									className="w-full bg-transparent text-[14px] font-medium leading-normal text-white placeholder:text-[#bbb] focus:outline-none"
+									className="w-full bg-transparent text-[16px] font-medium leading-normal text-white placeholder:text-[#bbb] focus:outline-none"
 									placeholder={namePlaceholder}
 									readOnly={!onNameChange}
 									value={resolvedName}
@@ -137,7 +154,7 @@ export function ProfileCard({
 							<div className="w-full rounded-[12px] bg-[var(--bg-transparent,rgba(255,255,255,0.12))] px-4 py-4">
 								<input
 									aria-label="Bio"
-									className="w-full bg-transparent text-[14px] font-medium leading-normal text-white placeholder:text-[#bbb] focus:outline-none"
+									className="w-full bg-transparent text-[16px] font-medium leading-normal text-white placeholder:text-[#bbb] focus:outline-none"
 									placeholder={bioPlaceholder}
 									readOnly={!onBioChange}
 									value={resolvedBio}
@@ -196,12 +213,25 @@ export function ProfileCard({
 						<span className="pointer-events-none absolute inset-0 rounded-[inherit] shadow-[inset_0px_0px_24px_0px_rgba(253,255,252,0.96)]" />
 					</button>
 				) : null}
-				<div className="absolute left-[23px] top-[-49px] h-[96px] w-[96px] overflow-hidden rounded-full border-4 border-[var(--bg-invert,#1e1e1e)] bg-[var(--bg-invert,#1e1e1e)]">
+				<div className="group absolute left-[23px] top-[-49px] h-[96px] w-[96px] overflow-hidden rounded-full border-4 border-[var(--bg-invert,#1e1e1e)] bg-[var(--bg-invert,#1e1e1e)]">
 					<img
 						alt={avatarAlt}
 						className="h-full w-full object-cover"
 						src={avatarSrc}
 					/>
+					{showAvatarControl ? (
+						<label className="absolute bottom-1 right-1 flex size-9 cursor-pointer items-center justify-center rounded-full bg-[rgba(0,0,0,0.65)] text-white shadow transition hover:bg-[rgba(0,0,0,0.8)]">
+							<span className="sr-only">{avatarActionLabel}</span>
+							<Camera className="size-4" aria-hidden="true" />
+							<input
+								accept="image/*"
+								aria-label={avatarInputAriaLabel}
+								className="sr-only"
+								onChange={handleAvatarChange}
+								type="file"
+							/>
+						</label>
+					) : null}
 				</div>
 				{showEditButton ? (
 					<div className="absolute right-[-1px] top-[-1px] p-3">

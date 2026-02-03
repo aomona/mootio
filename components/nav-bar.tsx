@@ -4,6 +4,8 @@ import Head from "next/head";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 
+import { authClient } from "@/lib/auth-client";
+
 type NavBarProps = {
 	className?: string;
 };
@@ -11,6 +13,7 @@ type NavBarProps = {
 export function NavBar({ className }: NavBarProps) {
 	const pathname = usePathname();
 	const router = useRouter();
+	const { data: session } = authClient.useSession();
 	const rootClassName = [
 		"flex w-[340px] items-center gap-[4px] rounded-[333px] bg-[rgba(255,255,255,0.12)] p-[4px] backdrop-blur-[12px]",
 		className ?? "",
@@ -26,6 +29,9 @@ export function NavBar({ className }: NavBarProps) {
 	const isShake = isRouteActive("/app/shake");
 	const isCollection = isRouteActive("/app/collections");
 	const isProfile = isRouteActive("/app/profile");
+	const profileHref = session?.user?.id
+		? `/app/profile/${session.user.id}`
+		: "/app/profile";
 	const showText = (value: string) => (
 		<span className="whitespace-nowrap text-[16px] font-bold leading-normal text-[#ff7f11]">
 			{value}
@@ -119,7 +125,7 @@ export function NavBar({ className }: NavBarProps) {
 						: "basis-18 shrink-0 grow-0 bg-[rgba(255,255,255,0.12)]",
 				].join(" ")}
 				aria-current={isProfile ? "page" : undefined}
-				onClick={() => handleNavigate("/app/profile")}
+				onClick={() => handleNavigate(profileHref)}
 			>
 				<Image
 					alt=""
