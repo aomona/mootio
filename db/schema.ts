@@ -12,11 +12,11 @@ import {
 	varchar,
 } from "drizzle-orm/pg-core";
 
-export const users = pgTable("users", {
+export const user = pgTable("users", {
 	id: text("id").primaryKey(),
 	name: text("name").notNull(),
 	email: text("email").notNull().unique(),
-	password: text("password").notNull(),
+	emailVerified: boolean("email_verified").notNull().default(false),
 	bio: text("bio"),
 	imageUrl: text("img_url"),
 	createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -25,6 +25,9 @@ export const users = pgTable("users", {
 		.$onUpdate(() => /* @__PURE__ */ new Date())
 		.notNull(),
 });
+
+// 後方互換性のためのエイリアス
+export const users = user;
 
 export const chains = pgTable("chains", {
 	id: text("id").primaryKey(),
@@ -198,6 +201,7 @@ export const account = pgTable(
 		password: text("password"),
 		createdAt: timestamp("created_at").defaultNow().notNull(),
 		updatedAt: timestamp("updated_at")
+			.defaultNow()
 			.$onUpdate(() => /* @__PURE__ */ new Date())
 			.notNull(),
 	},

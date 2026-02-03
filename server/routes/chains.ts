@@ -16,12 +16,12 @@ const chainsRoute = createHonoApp()
 			.select({
 				id: users.id,
 				name: users.name,
-				icon_url: users.imageUrl,
+				iconUrl: users.imageUrl,
 			})
 			.from(chains)
 			.innerJoin(users, eq(chains.userId, users.id));
 
-		return c.json(chainUsers);
+		return c.json({ users: chainUsers });
 	})
 	.post("/join", async (c) => {
 		const { user } = await getUserOrThrow(c);
@@ -38,7 +38,7 @@ const chainsRoute = createHonoApp()
 			if (existingChain) {
 				return c.json({
 					success: true,
-					joined: false,
+					joined: true,
 					messages: ["Already joined the chain"],
 				});
 			}

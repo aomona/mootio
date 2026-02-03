@@ -12,7 +12,7 @@ const app = createHonoApp()
 	.route("/auth", authRoute)
 	.route("/notifications", notificationsRoute)
 	.route("/users", usersRoute)
-	.route("/follows", followsRoute)
+	.route("/users", followsRoute)
 	.route("/chain", chainsRoute)
 	.route("/users", cardsRoute)
 	.route("/users", trophiesRoute);

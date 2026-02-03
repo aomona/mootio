@@ -6,7 +6,7 @@ import { createHonoApp } from "@/server/create-app";
 import { getUserOrThrow } from "@/server/middleware/auth";
 
 const followsRoute = createHonoApp()
-	.post("/:userId", async (c) => {
+	.post("/:userId/follow", async (c) => {
 		const { user } = await getUserOrThrow(c);
 		const userId = c.req.param("userId");
 		const messages: string[] = [];
@@ -77,7 +77,7 @@ const followsRoute = createHonoApp()
 			);
 		}
 	})
-	.delete("/:userId", async (c) => {
+	.delete("/:userId/follow", async (c) => {
 		const { user } = await getUserOrThrow(c);
 		const userId = c.req.param("userId");
 		const messages: string[] = [];
