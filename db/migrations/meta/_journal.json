@@ -22,6 +22,48 @@
 			"when": 1769564558352,
 			"tag": "0002_remarkable_plazm",
 			"breakpoints": true
+		},
+		{
+			"idx": 3,
+			"version": "7",
+			"when": 1770053987962,
+			"tag": "0003_shiny_vance_astro",
+			"breakpoints": true
+		},
+		{
+			"idx": 4,
+			"version": "7",
+			"when": 1770066804800,
+			"tag": "0004_solid_ares",
+			"breakpoints": true
+		},
+		{
+			"idx": 5,
+			"version": "7",
+			"when": 1770067797503,
+			"tag": "0005_optimal_strong_guy",
+			"breakpoints": true
+		},
+		{
+			"idx": 6,
+			"version": "7",
+			"when": 1770068159582,
+			"tag": "0006_stale_puck",
+			"breakpoints": true
+		},
+		{
+			"idx": 7,
+			"version": "7",
+			"when": 1770101605118,
+			"tag": "0007_misty_rocket_racer",
+			"breakpoints": true
+		},
+		{
+			"idx": 8,
+			"version": "7",
+			"when": 1770200000000,
+			"tag": "0008_daily_chain_rewards",
+			"breakpoints": true
 		}
 	]
 }
