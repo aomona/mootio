@@ -18,6 +18,7 @@ export const user = pgTable("users", {
 	email: text("email").notNull().unique(),
 	emailVerified: boolean("email_verified").notNull().default(false),
 	bio: text("bio"),
+	image: text("image"),
 	imageUrl: text("img_url"),
 	createdAt: timestamp("created_at").defaultNow().notNull(),
 	updatedAt: timestamp("updated_at")
@@ -34,7 +35,9 @@ export const chains = pgTable("chains", {
 	userId: text("user_id")
 		.notNull()
 		.references(() => users.id, { onDelete: "cascade" }),
-	joinCount: integer("join_count").notNull().default(0),
+	joinedAt: timestamp("joined_at", { withTimezone: true })
+		.defaultNow()
+		.notNull(),
 });
 
 export const followers = pgTable(
@@ -61,24 +64,20 @@ export const trophies = pgTable("trophies", {
 	thumbnailUrl: text("thumbnail_url"),
 });
 
-export const userTrophies = pgTable(
-	"user_trophies",
-	{
-		userId: text("user_id")
-			.notNull()
-			.references(() => users.id, { onDelete: "cascade" }),
-		trophyId: text("trophy_id")
-			.notNull()
-			.references(() => trophies.id, { onDelete: "cascade" }),
-		isCompleted: boolean("is_completed").notNull().default(false),
-		progress: integer("progress").notNull().default(0),
-	},
-	(table) => [
-		primaryKey({
-			columns: [table.userId, table.trophyId],
-		}),
-	],
-);
+export const userTrophies = pgTable("user_trophies", {
+	id: text("id").primaryKey(),
+	userId: text("user_id")
+		.notNull()
+		.references(() => users.id, { onDelete: "cascade" }),
+	trophyId: text("trophy_id")
+		.notNull()
+		.references(() => trophies.id, { onDelete: "cascade" }),
+	isCompleted: boolean("is_completed").notNull().default(false),
+	progress: integer("progress").notNull().default(0),
+	awardedAt: timestamp("awarded_at", { withTimezone: true })
+		.defaultNow()
+		.notNull(),
+});
 
 export const cards = pgTable("cards", {
 	id: text("id").primaryKey(),
@@ -88,23 +87,16 @@ export const cards = pgTable("cards", {
 	rarity: text("rarity"),
 });
 
-export const cardUsers = pgTable(
-	"card_users",
-	{
-		cardId: text("card_id")
-			.notNull()
-			.references(() => cards.id, { onDelete: "cascade" }),
-		userId: text("user_id")
-			.notNull()
-			.references(() => users.id, { onDelete: "cascade" }),
-		isAcquired: boolean("is_acquired").notNull().default(false),
-	},
-	(table) => [
-		primaryKey({
-			columns: [table.cardId, table.userId],
-		}),
-	],
-);
+export const cardUsers = pgTable("card_users", {
+	id: text("id").primaryKey(),
+	cardId: text("card_id")
+		.notNull()
+		.references(() => cards.id, { onDelete: "cascade" }),
+	userId: text("user_id")
+		.notNull()
+		.references(() => users.id, { onDelete: "cascade" }),
+	isAcquired: boolean("is_acquired").notNull().default(false),
+});
 
 export const usersRelations = relations(users, ({ many }) => ({
 	chains: many(chains),

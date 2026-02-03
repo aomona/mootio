@@ -50,6 +50,20 @@
 			"when": 1770068159582,
 			"tag": "0006_stale_puck",
 			"breakpoints": true
+		},
+		{
+			"idx": 7,
+			"version": "7",
+			"when": 1770101605118,
+			"tag": "0007_misty_rocket_racer",
+			"breakpoints": true
+		},
+		{
+			"idx": 8,
+			"version": "7",
+			"when": 1770200000000,
+			"tag": "0008_daily_chain_rewards",
+			"breakpoints": true
 		}
 	]
 }

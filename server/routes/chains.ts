@@ -1,55 +1,183 @@
-import { and, eq } from "drizzle-orm";
-import { chains, followers, users } from "@/db/schema";
+import { and, eq, gte, lt, sql } from "drizzle-orm";
+import { uuidv7 } from "uuidv7";
+import {
+	cards,
+	cardUsers,
+	chains,
+	followers,
+	users,
+	userTrophies,
+} from "@/db/schema";
 import { db } from "@/lib/db";
 import { createSendPushNotificationToUser } from "@/server/applications/usecases/send-push-notification";
 import { createHonoApp } from "@/server/create-app";
 import { createPushNotificationRepository } from "@/server/infrastructure/repositories/push-notification";
 import { createPushSubscriptionRepository } from "@/server/infrastructure/repositories/push-subscription";
 import { getUserOrThrow } from "@/server/middleware/auth";
+import { buildPublicUrl } from "@/server/utils/r2";
+
+const CHAIN_RESET_HOUR = 4;
+const JST_OFFSET_MINUTES = 9 * 60;
+const TROPHY_IDS = {
+	totalTenth: "1",
+	dailyTenth: "2",
+} as const;
+
+const getChainDayRange = (now = new Date()) => {
+	const offsetMs = JST_OFFSET_MINUTES * 60 * 1000;
+	const nowJst = new Date(now.getTime() + offsetMs);
+	const jstYear = nowJst.getUTCFullYear();
+	const jstMonth = nowJst.getUTCMonth();
+	const jstDate = nowJst.getUTCDate();
+	const jstHour = nowJst.getUTCHours();
+
+	const baseStartJst = new Date(
+		Date.UTC(jstYear, jstMonth, jstDate, CHAIN_RESET_HOUR),
+	);
+	const startJst =
+		jstHour < CHAIN_RESET_HOUR
+			? new Date(Date.UTC(jstYear, jstMonth, jstDate - 1, CHAIN_RESET_HOUR))
+			: baseStartJst;
+	const startUtc = new Date(startJst.getTime() - offsetMs);
+	const endUtc = new Date(startUtc.getTime() + 24 * 60 * 60 * 1000);
+	const chainDayKey = startJst.toISOString().slice(0, 10);
+
+	return { startUtc, endUtc, chainDayKey };
+};
 
 const chainsRoute = createHonoApp()
 	.get("/users", async (c) => {
 		await getUserOrThrow(c);
+		const { publicUrl } = c.get("r2");
+		const { startUtc, endUtc } = getChainDayRange();
 
 		// チェーンに参加しているユーザーを取得
 		const chainUsers = await db
 			.select({
 				id: users.id,
 				name: users.name,
-				iconUrl: users.imageUrl,
+				imagePath: users.imageUrl,
 			})
 			.from(chains)
-			.innerJoin(users, eq(chains.userId, users.id));
+			.innerJoin(users, eq(chains.userId, users.id))
+			.where(and(gte(chains.joinedAt, startUtc), lt(chains.joinedAt, endUtc)));
 
-		return c.json({ users: chainUsers });
+		return c.json({
+			users: chainUsers.map((user) => ({
+				id: user.id,
+				name: user.name,
+				image: buildPublicUrl(publicUrl, user.imagePath),
+			})),
+		});
 	})
 	.post("/join", async (c) => {
 		const { user } = await getUserOrThrow(c);
 		const messages: string[] = [];
+		const now = new Date();
+		const { startUtc, endUtc, chainDayKey } = getChainDayRange(now);
 
 		try {
-			// 既にチェーンに参加しているか確認
-			const [existingChain] = await db
-				.select()
-				.from(chains)
-				.where(eq(chains.userId, user.id))
-				.limit(1);
+			const joinResult = await db.transaction(async (tx) => {
+				await tx.execute(
+					sql`select pg_advisory_xact_lock(hashtext(${chainDayKey}))`,
+				);
+				const [existingChain] = await tx
+					.select({ id: chains.id })
+					.from(chains)
+					.where(
+						and(
+							eq(chains.userId, user.id),
+							gte(chains.joinedAt, startUtc),
+							lt(chains.joinedAt, endUtc),
+						),
+					)
+					.limit(1);
 
-			if (existingChain) {
+				if (existingChain) {
+					return {
+						alreadyJoined: true,
+						awardedCardId: null,
+						awardedTrophyIds: [],
+					};
+				}
+
+				await tx.insert(chains).values({
+					id: uuidv7(),
+					userId: user.id,
+					joinedAt: now,
+				});
+
+				const [randomCard] = await tx
+					.select({ id: cards.id })
+					.from(cards)
+					.orderBy(sql`random()`)
+					.limit(1);
+
+				let awardedCardId: string | null = null;
+				if (randomCard) {
+					awardedCardId = randomCard.id;
+					await tx.insert(cardUsers).values({
+						id: uuidv7(),
+						cardId: randomCard.id,
+						userId: user.id,
+						isAcquired: true,
+					});
+				}
+
+				const [{ count: totalJoinCountRaw }] = await tx
+					.select({ count: sql<number>`count(*)` })
+					.from(chains)
+					.where(eq(chains.userId, user.id));
+
+				const [{ count: dailyJoinCountRaw }] = await tx
+					.select({ count: sql<number>`count(*)` })
+					.from(chains)
+					.where(
+						and(gte(chains.joinedAt, startUtc), lt(chains.joinedAt, endUtc)),
+					);
+
+				const totalJoinCount = Number(totalJoinCountRaw);
+				const dailyJoinCount = Number(dailyJoinCountRaw);
+
+				const awardedTrophyIds: string[] = [];
+				if (totalJoinCount === 10) {
+					await tx.insert(userTrophies).values({
+						id: uuidv7(),
+						userId: user.id,
+						trophyId: TROPHY_IDS.totalTenth,
+						isCompleted: true,
+						progress: 100,
+					});
+					awardedTrophyIds.push(TROPHY_IDS.totalTenth);
+				}
+
+				if (dailyJoinCount === 10) {
+					await tx.insert(userTrophies).values({
+						id: uuidv7(),
+						userId: user.id,
+						trophyId: TROPHY_IDS.dailyTenth,
+						isCompleted: true,
+						progress: 100,
+					});
+					awardedTrophyIds.push(TROPHY_IDS.dailyTenth);
+				}
+
+				return {
+					alreadyJoined: false,
+					awardedCardId,
+					awardedTrophyIds,
+				};
+			});
+
+			if (joinResult.alreadyJoined) {
 				return c.json({
 					success: true,
-					joined: true,
-					messages: ["Already joined the chain"],
+					joined: false,
+					messages: ["Already joined today"],
+					card_id: null,
+					awarded_trophy_ids: [],
 				});
 			}
-
-			// チェーンに参加
-			const chainId = `${user.id}_${Date.now()}`;
-			await db.insert(chains).values({
-				id: chainId,
-				userId: user.id,
-				joinCount: 1,
-			});
 
 			// フォロワーに通知を送信
 			try {
@@ -84,6 +212,8 @@ const chainsRoute = createHonoApp()
 			return c.json({
 				success: true,
 				joined: true,
+				card_id: joinResult.awardedCardId,
+				awarded_trophy_ids: joinResult.awardedTrophyIds,
 			});
 		} catch (error) {
 			messages.push(
@@ -101,26 +231,15 @@ const chainsRoute = createHonoApp()
 	})
 	.get("/joined", async (c) => {
 		const { user } = await getUserOrThrow(c);
-
-		// ユーザーがチェーンに参加しているか確認
-		const [userChain] = await db
-			.select()
-			.from(chains)
-			.where(eq(chains.userId, user.id))
-			.limit(1);
-
-		if (!userChain) {
-			return c.json({
-				joined: false,
-			});
-		}
+		const { publicUrl } = c.get("r2");
+		const { startUtc, endUtc } = getChainDayRange();
 
 		// チェーンに参加している全ユーザーを取得（フォロー中を優先）
 		const chainUsersWithFollowStatus = await db
 			.select({
 				userId: users.id,
 				userName: users.name,
-				userIcon: users.imageUrl,
+				userIconPath: users.imageUrl,
 				isFollowing: followers.followerId,
 			})
 			.from(chains)
@@ -132,13 +251,21 @@ const chainsRoute = createHonoApp()
 					eq(followers.followeeId, users.id),
 				),
 			)
-			.where(eq(chains.userId, chains.userId));
+			.where(and(gte(chains.joinedAt, startUtc), lt(chains.joinedAt, endUtc)));
+		const joined = chainUsersWithFollowStatus.some(
+			(userItem) => userItem.userId === user.id,
+		);
 
 		// フォロー中のユーザーを最初に、それ以外をランダムにソート
-		const followingUsers = chainUsersWithFollowStatus.filter(
+		const chainUsersWithIcons = chainUsersWithFollowStatus.map((userItem) => ({
+			...userItem,
+			userIcon: buildPublicUrl(publicUrl, userItem.userIconPath),
+		}));
+
+		const followingUsers = chainUsersWithIcons.filter(
 			(u) => u.isFollowing !== null && u.userId !== user.id,
 		);
-		const otherUsers = chainUsersWithFollowStatus.filter(
+		const otherUsers = chainUsersWithIcons.filter(
 			(u) => u.isFollowing === null && u.userId !== user.id,
 		);
 
@@ -155,14 +282,18 @@ const chainsRoute = createHonoApp()
 		const shuffledFollowing = shuffleArray(followingUsers);
 		const shuffledOthers = shuffleArray(otherUsers);
 		const sortedUsers = [...shuffledFollowing, ...shuffledOthers];
+		const fallbackUsers =
+			sortedUsers.length > 0
+				? sortedUsers
+				: chainUsersWithIcons.filter((u) => u.userId === user.id);
 
-		const topUser = sortedUsers[0];
-		const iconUsers = sortedUsers.slice(0, 2);
+		const topUser = fallbackUsers[0];
+		const iconUsers = fallbackUsers.slice(0, 2);
 
 		return c.json({
-			joined: true,
+			joined,
 			label: {
-				count: chainUsersWithFollowStatus.length,
+				count: chainUsersWithIcons.length,
 				top_user_name: topUser?.userName ?? "",
 				top_user_icon: topUser?.userIcon ?? "",
 				icons: iconUsers.map((u) => u.userIcon ?? ""),

@@ -12,7 +12,12 @@ const factory = () =>
 		initApp: (app) => {
 			// R2 Client Middleware
 			app.use(async (c, next) => {
-				const { R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_S3_URL } = env(c);
+				const {
+					R2_ACCESS_KEY_ID,
+					R2_SECRET_ACCESS_KEY,
+					R2_S3_URL,
+					R2_PUBLIC_URL,
+				} = env(c);
 				c.set("r2", {
 					client: new AwsClient({
 						service: "s3",
@@ -21,6 +26,7 @@ const factory = () =>
 						secretAccessKey: R2_SECRET_ACCESS_KEY,
 					}),
 					baseUrl: R2_S3_URL,
+					publicUrl: R2_PUBLIC_URL,
 				});
 
 				c.set("db", db);

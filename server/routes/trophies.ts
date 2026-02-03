@@ -27,7 +27,7 @@ const trophiesRoute = createHonoApp().get("/:userId/trophies", async (c) => {
 			title: trophies.title,
 			model_url: trophies.modelUrl,
 			thumbnail_url: trophies.thumbnailUrl,
-			created_at: trophies.id, // トロフィーテーブルにcreated_atがないため暫定的にIDを使用
+			created_at: userTrophies.awardedAt,
 		})
 		.from(userTrophies)
 		.innerJoin(trophies, eq(userTrophies.trophyId, trophies.id))
