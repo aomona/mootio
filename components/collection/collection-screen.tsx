@@ -221,9 +221,7 @@ export function CollectionScreen({
 		});
 	}, [handleCardClick, uniqueCards]);
 
-	const rootClassName = ["relative w-screen pb-28", className ?? ""]
-		.join(" ")
-		.trim();
+	const rootClassName = ["relative pb-28", className ?? ""].join(" ").trim();
 
 	if (isLoading) {
 		return (
