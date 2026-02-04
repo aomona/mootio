@@ -1,9 +1,6 @@
 import { CARD_GRADIENTS, type CardGradientName } from "@/components/card";
 
-const IMG_CARD_PREVIEW_BG =
-	"https://www.figma.com/api/mcp/asset/9e71871f-9d15-405e-9d02-3a8fafb2440c";
-const IMG_CARD_PREVIEW_PICTOGRAM =
-	"https://www.figma.com/api/mcp/asset/b3faa059-e05d-483e-a049-6cff8b63caaf";
+const IMG_CARD_PREVIEW_BG = "/signup/bg-pattern.svg";
 
 type CardPreviewGradient = CardGradientName | "legendary";
 
@@ -27,7 +24,7 @@ export function CardPreview({
 	className,
 	backgroundSrc = IMG_CARD_PREVIEW_BG,
 	backgroundAlt = "",
-	pictogramSrc = IMG_CARD_PREVIEW_PICTOGRAM,
+	pictogramSrc,
 	pictogramAlt = "",
 	unionAlt = "",
 }: CardPreviewProps) {

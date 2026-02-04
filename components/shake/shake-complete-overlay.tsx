@@ -26,8 +26,7 @@ const notoSansJP = Noto_Sans_JP({
 const TEXT_FONT_FAMILY = `${inter.style.fontFamily}, ${notoSansJP.style.fontFamily}, sans-serif`;
 const RANK_GRADIENT =
 	"linear-gradient(119.056deg, rgb(194, 232, 18) 21.042%, rgb(255, 127, 17) 40.344%, rgb(238, 66, 102) 101.73%)";
-const CARD_ICON_SRC =
-	"https://www.figma.com/api/mcp/asset/24243449-c212-4313-90fd-0daa917c24ad";
+const CARD_ICON_SRC = "/icons/card-icon.svg";
 
 export function ShakeCompleteOverlay({
 	open,

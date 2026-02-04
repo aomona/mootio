@@ -6,27 +6,16 @@ import { useEffect, useMemo, useState } from "react";
 import { Card, type CardGradientName, type CardProps } from "@/components/card";
 import { apiClient } from "@/lib/api-client";
 
-const IMG_ABS_BG_RARE =
-	"https://www.figma.com/api/mcp/asset/e1d44955-a39f-4d72-85bc-b3cfb858272b";
-const IMG_ABS_BG_EPIC =
-	"https://www.figma.com/api/mcp/asset/f94a43f4-060f-4ca2-97cb-dc45e9c9b84e";
-const IMG_ABS_BG_LEGEND =
-	"https://www.figma.com/api/mcp/asset/87a35337-3eb8-4eef-9c2a-ed20470b0acc";
-const IMG_STARS_LEGEND =
-	"https://www.figma.com/api/mcp/asset/10c8214d-f88a-462a-9094-ede5662364fb";
-const IMG_STARS_EPIC =
-	"https://www.figma.com/api/mcp/asset/ef9a7938-40cf-4051-87f2-0eb3f0af2c67";
-const IMG_STARS_RARE =
-	"https://www.figma.com/api/mcp/asset/acdd5554-8672-498a-8902-2244fc2c8d20";
-const IMG_KNOWLEDGE_BG =
-	"https://www.figma.com/api/mcp/asset/c0642eae-191b-46dd-bc7a-ae733416447d";
+const IMG_STARS_LEGEND = "/icons/card-stars-legend.svg";
+const IMG_STARS_EPIC = "/icons/card-stars-epic.svg";
+const IMG_STARS_RARE = "/icons/card-stars-rare.svg";
 const STORAGE_BASE_URL = "https://storage.mootio.app/card";
 
 const DEFAULT_BACKGROUND_BY_GRADIENT: Record<CardGradientName, string> = {
-	rare: IMG_ABS_BG_RARE,
-	epic: IMG_ABS_BG_EPIC,
-	legend: IMG_ABS_BG_LEGEND,
-	knowledge: IMG_KNOWLEDGE_BG,
+	rare: "/signup/bg-pattern.svg",
+	epic: "/signup/bg-pattern.svg",
+	legend: "/signup/bg-pattern.svg",
+	knowledge: "/signup/bg-pattern.svg",
 };
 
 const DEFAULT_STAR_ICON_BY_GRADIENT: Record<
@@ -157,8 +146,8 @@ export function CardRender({
 		const isKnowledge = gradient === "knowledge";
 		const resolvedBackgroundSrc =
 			backgroundSrc ?? DEFAULT_BACKGROUND_BY_GRADIENT[gradient];
-		const pictogramSrc = `${STORAGE_BASE_URL}/${event}/pictogram.svg?b`;
-		const pictogramOverlaySrc = `${STORAGE_BASE_URL}/${event}/pictogram-overlay.svg?b`;
+		const pictogramSrc = `${STORAGE_BASE_URL}/${event}/pictogram.svg?v=1`;
+		const pictogramOverlaySrc = `${STORAGE_BASE_URL}/${event}/pictogram-overlay.svg?v=1`;
 
 		if (isKnowledge) {
 			return {

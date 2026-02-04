@@ -34,43 +34,8 @@ const notoSansJP = Noto_Sans_JP({
 	display: "swap",
 });
 const TEXT_FONT_FAMILY = `${inter.style.fontFamily}, ${notoSansJP.style.fontFamily}, sans-serif`;
-
-const DEFAULT_AVATARS: AvatarImage[] = [
-	{
-		src: "https://www.figma.com/api/mcp/asset/10c2dd5e-b03a-4fcb-ab6f-485cf2e5b3af",
-		imageStyle: {
-			height: "234.87%",
-			left: "-110.98%",
-			top: "-31.71%",
-			width: "329.24%",
-		},
-	},
-	{
-		src: "https://www.figma.com/api/mcp/asset/3febe968-efa2-487f-a497-a9049418d263",
-		imageStyle: {
-			height: "133.34%",
-			left: "0%",
-			top: "0%",
-			width: "100%",
-		},
-	},
-	{
-		src: "https://www.figma.com/api/mcp/asset/10b7c1d9-370d-49ba-b055-a1ac07c9df7d",
-		imageStyle: {
-			height: "133.34%",
-			left: "0%",
-			top: "0%",
-			width: "100%",
-		},
-	},
-];
-const DEFAULT_MESSAGE_LINES: [string, string] = [
-	"hasizumeと他3人が",
-	"このチェーンに参加しています",
-];
 const DEFAULT_FIRST_LABEL = "一番乗り！";
-const DEFAULT_STARS_SRC =
-	"https://www.figma.com/api/mcp/asset/c171cda8-293c-4a03-88de-4c310a7d0ccf";
+const DEFAULT_STARS_SRC = "/icons/first-chain-stars.svg";
 const FALLBACK_AVATAR_STYLE: CSSProperties = {
 	height: "100%",
 	left: "0%",
@@ -82,11 +47,11 @@ const FALLBACK_AVATAR_STYLE: CSSProperties = {
 const buildMessageLines = (
 	count: number,
 	topUserName: string,
-): [string, string] => {
-	if (count <= 0) {
-		return DEFAULT_MESSAGE_LINES;
+): [string, string] | null => {
+	const resolvedName = topUserName.trim();
+	if (!resolvedName || count <= 0) {
+		return null;
 	}
-	const resolvedName = topUserName.trim() ? topUserName : "だれか";
 	if (count === 1) {
 		return [`${resolvedName}が`, "このチェーンに参加しています"];
 	}
@@ -100,7 +65,7 @@ const isRemoteSrc = (src: string | StaticImageData) =>
 export function ChainDialog({
 	className,
 	type = "some",
-	avatars = DEFAULT_AVATARS,
+	avatars,
 	message,
 	messageLines,
 	count,
@@ -124,18 +89,26 @@ export function ChainDialog({
 	const resolvedMessageLines =
 		messageLines ??
 		(typeof count === "number"
-			? buildMessageLines(count, topUserName)
-			: DEFAULT_MESSAGE_LINES);
-	const messageContent = message ?? (
-		<>
-			<p className="mb-0">{resolvedMessageLines[0]}</p>
-			<p>{resolvedMessageLines[1]}</p>
-		</>
-	);
+			? buildMessageLines(count, topUserName ?? "")
+			: null);
+	const messageContent =
+		message ??
+		(resolvedMessageLines ? (
+			<>
+				<p className="mb-0">{resolvedMessageLines[0]}</p>
+				<p>{resolvedMessageLines[1]}</p>
+			</>
+		) : null);
+	const shouldShowMessage =
+		messageContent !== null && messageContent !== undefined;
 	const firstContentNode = firstContent ?? firstLabel;
-	const visibleAvatars = avatars.slice(0, 3);
+	const shouldShowFirstContent =
+		firstContentNode !== null && firstContentNode !== undefined;
+	const resolvedAvatars = avatars ?? [];
+	const visibleAvatars = resolvedAvatars.slice(0, 3);
 	const avatarCount = visibleAvatars.length;
 	const avatarStackWidth = avatarCount > 0 ? 48 + (avatarCount - 1) * 24 : 0;
+	const resolvedStarsAlt = starsAlt ?? "";
 
 	return (
 		<div className={rootClassName}>
@@ -175,14 +148,16 @@ export function ChainDialog({
 							))}
 						</div>
 					) : null}
-					<div className="content-stretch flex items-center justify-center px-[12px] relative shrink-0">
-						<div
-							className="font-medium leading-[normal] not-italic relative shrink-0 text-[12px] text-white whitespace-nowrap"
-							style={{ fontFamily: TEXT_FONT_FAMILY }}
-						>
-							{messageContent}
+					{shouldShowMessage ? (
+						<div className="content-stretch flex items-center justify-center px-[12px] relative shrink-0">
+							<div
+								className="font-medium leading-[normal] not-italic relative shrink-0 text-[12px] text-white whitespace-nowrap"
+								style={{ fontFamily: TEXT_FONT_FAMILY }}
+							>
+								{messageContent}
+							</div>
 						</div>
-					</div>
+					) : null}
 				</>
 			) : null}
 			{isFirst ? (
@@ -190,7 +165,7 @@ export function ChainDialog({
 					{starsSrc ? (
 						<div className="relative shrink-0 size-[24px]">
 							<Image
-								alt={starsAlt}
+								alt={resolvedStarsAlt}
 								src={starsSrc}
 								width={24}
 								height={24}
@@ -199,12 +174,14 @@ export function ChainDialog({
 							/>
 						</div>
 					) : null}
-					<p
-						className="font-medium leading-[normal] not-italic relative shrink-0 text-[12px] text-white"
-						style={{ fontFamily: TEXT_FONT_FAMILY }}
-					>
-						{firstContentNode}
-					</p>
+					{shouldShowFirstContent ? (
+						<p
+							className="font-medium leading-[normal] not-italic relative shrink-0 text-[12px] text-white"
+							style={{ fontFamily: TEXT_FONT_FAMILY }}
+						>
+							{firstContentNode}
+						</p>
+					) : null}
 				</>
 			) : null}
 		</div>

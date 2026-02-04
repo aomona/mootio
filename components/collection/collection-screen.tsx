@@ -7,12 +7,8 @@ import { TrophyCard } from "@/components/trophy-card";
 import { apiClient } from "@/lib/api-client";
 
 const STORAGE_BASE_URL = "https://storage.mootio.app/card";
-const UNION_FALLBACK_SRC =
-	"https://www.figma.com/api/mcp/asset/cdf654c3-8190-4616-b496-5b41e5395e58";
-const ICON_TROPHY_SRC =
-	"https://www.figma.com/api/mcp/asset/d1eec7c5-b552-48c7-8fa8-4ed78f15acb9";
-const ICON_CARD_SRC =
-	"https://www.figma.com/api/mcp/asset/73ee5a1d-783d-49c7-843a-1e270c476ca1";
+const ICON_TROPHY_SRC = "/icons/icon-trophy.svg";
+const ICON_CARD_SRC = "/icons/icon-card-white.svg";
 
 type CardPreviewGradient =
 	| "rare"
@@ -204,12 +200,8 @@ export function CollectionScreen({
 				return [];
 			}
 			const event = card.event;
-			const pictogramSrc = event
-				? `${STORAGE_BASE_URL}/${event}/pictogram.svg?b`
-				: undefined;
-			const unionSrc = event
-				? `${STORAGE_BASE_URL}/${event}/pictogram-overlay.svg?b`
-				: UNION_FALLBACK_SRC;
+			const pictogramSrc = `${STORAGE_BASE_URL}/${event}/pictogram.svg?b`;
+			const unionSrc = `${STORAGE_BASE_URL}/${event}/pictogram-overlay.svg?b`;
 			return [
 				<button
 					key={card.id}
