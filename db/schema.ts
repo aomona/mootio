@@ -3,25 +3,157 @@ import {
 	bigint,
 	boolean,
 	index,
+	integer,
 	pgTable,
+	primaryKey,
 	text,
 	timestamp,
 	uniqueIndex,
 	varchar,
 } from "drizzle-orm/pg-core";
 
-export const user = pgTable("user", {
+export const user = pgTable("users", {
 	id: text("id").primaryKey(),
 	name: text("name").notNull(),
 	email: text("email").notNull().unique(),
-	emailVerified: boolean("email_verified").default(false).notNull(),
+	emailVerified: boolean("email_verified").notNull().default(false),
+	bio: text("bio"),
 	image: text("image"),
+	imageUrl: text("img_url"),
 	createdAt: timestamp("created_at").defaultNow().notNull(),
 	updatedAt: timestamp("updated_at")
 		.defaultNow()
 		.$onUpdate(() => /* @__PURE__ */ new Date())
 		.notNull(),
 });
+
+// 後方互換性のためのエイリアス
+export const users = user;
+
+export const chains = pgTable("chains", {
+	id: text("id").primaryKey(),
+	userId: text("user_id")
+		.notNull()
+		.references(() => users.id, { onDelete: "cascade" }),
+	joinedAt: timestamp("joined_at", { withTimezone: true })
+		.defaultNow()
+		.notNull(),
+});
+
+export const followers = pgTable(
+	"followers",
+	{
+		followerId: text("follower_id")
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+		followeeId: text("followee_id")
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+	},
+	(table) => [
+		primaryKey({
+			columns: [table.followerId, table.followeeId],
+		}),
+	],
+);
+
+export const trophies = pgTable("trophies", {
+	id: text("id").primaryKey(),
+	title: text("title").notNull(),
+	modelUrl: text("model_url"),
+	thumbnailUrl: text("thumbnail_url"),
+});
+
+export const userTrophies = pgTable("user_trophies", {
+	id: text("id").primaryKey(),
+	userId: text("user_id")
+		.notNull()
+		.references(() => users.id, { onDelete: "cascade" }),
+	trophyId: text("trophy_id")
+		.notNull()
+		.references(() => trophies.id, { onDelete: "cascade" }),
+	isCompleted: boolean("is_completed").notNull().default(false),
+	progress: integer("progress").notNull().default(0),
+	awardedAt: timestamp("awarded_at", { withTimezone: true })
+		.defaultNow()
+		.notNull(),
+});
+
+export const cards = pgTable("cards", {
+	id: text("id").primaryKey(),
+	title: text("title").notNull(),
+	content: text("content"),
+	event: text("event"),
+	rarity: text("rarity"),
+});
+
+export const cardUsers = pgTable("card_users", {
+	id: text("id").primaryKey(),
+	cardId: text("card_id")
+		.notNull()
+		.references(() => cards.id, { onDelete: "cascade" }),
+	userId: text("user_id")
+		.notNull()
+		.references(() => users.id, { onDelete: "cascade" }),
+	isAcquired: boolean("is_acquired").notNull().default(false),
+});
+
+export const usersRelations = relations(users, ({ many }) => ({
+	chains: many(chains),
+	following: many(followers, {
+		relationName: "following",
+	}),
+	followers: many(followers, {
+		relationName: "followers",
+	}),
+	userTrophies: many(userTrophies),
+	cardUsers: many(cardUsers),
+	sessions: many(session),
+	accounts: many(account),
+	pushSubscriptions: many(pushSubscription),
+}));
+
+export const chainsRelations = relations(chains, ({ one }) => ({
+	user: one(users, {
+		fields: [chains.userId],
+		references: [users.id],
+	}),
+}));
+
+export const followersRelations = relations(followers, ({ one }) => ({
+	follower: one(users, {
+		fields: [followers.followerId],
+		references: [users.id],
+		relationName: "following",
+	}),
+	followee: one(users, {
+		fields: [followers.followeeId],
+		references: [users.id],
+		relationName: "followers",
+	}),
+}));
+
+export const userTrophiesRelations = relations(userTrophies, ({ one }) => ({
+	user: one(users, {
+		fields: [userTrophies.userId],
+		references: [users.id],
+	}),
+	trophy: one(trophies, {
+		fields: [userTrophies.trophyId],
+		references: [trophies.id],
+	}),
+}));
+
+export const cardUsersRelations = relations(cardUsers, ({ one }) => ({
+	user: one(users, {
+		fields: [cardUsers.userId],
+		references: [users.id],
+	}),
+	card: one(cards, {
+		fields: [cardUsers.cardId],
+		references: [cards.id],
+	}),
+}));
 
 export const session = pgTable(
 	"session",
@@ -31,13 +163,14 @@ export const session = pgTable(
 		token: text("token").notNull().unique(),
 		createdAt: timestamp("created_at").defaultNow().notNull(),
 		updatedAt: timestamp("updated_at")
+			.defaultNow()
 			.$onUpdate(() => /* @__PURE__ */ new Date())
 			.notNull(),
 		ipAddress: text("ip_address"),
 		userAgent: text("user_agent"),
 		userId: text("user_id")
 			.notNull()
-			.references(() => user.id, { onDelete: "cascade" }),
+			.references(() => users.id, { onDelete: "cascade" }),
 	},
 	(table) => [index("session_userId_idx").on(table.userId)],
 );
@@ -50,7 +183,7 @@ export const account = pgTable(
 		providerId: text("provider_id").notNull(),
 		userId: text("user_id")
 			.notNull()
-			.references(() => user.id, { onDelete: "cascade" }),
+			.references(() => users.id, { onDelete: "cascade" }),
 		accessToken: text("access_token"),
 		refreshToken: text("refresh_token"),
 		idToken: text("id_token"),
@@ -60,6 +193,7 @@ export const account = pgTable(
 		password: text("password"),
 		createdAt: timestamp("created_at").defaultNow().notNull(),
 		updatedAt: timestamp("updated_at")
+			.defaultNow()
 			.$onUpdate(() => /* @__PURE__ */ new Date())
 			.notNull(),
 	},
@@ -100,7 +234,7 @@ export const pushSubscription = pgTable(
 		id: text("id").primaryKey().notNull(),
 		userId: text("user_id")
 			.notNull()
-			.references(() => user.id, { onDelete: "cascade" }),
+			.references(() => users.id, { onDelete: "cascade" }),
 		endpoint: text("endpoint").notNull(),
 		p256dh: text("p256dh").notNull(),
 		auth: text("auth").notNull(),
@@ -120,32 +254,26 @@ export const pushSubscription = pgTable(
 	],
 );
 
-export const userRelations = relations(user, ({ many }) => ({
-	sessions: many(session),
-	accounts: many(account),
-	pushSubscriptions: many(pushSubscription),
-}));
-
 export const sessionRelations = relations(session, ({ one }) => ({
-	user: one(user, {
+	user: one(users, {
 		fields: [session.userId],
-		references: [user.id],
+		references: [users.id],
 	}),
 }));
 
 export const accountRelations = relations(account, ({ one }) => ({
-	user: one(user, {
+	user: one(users, {
 		fields: [account.userId],
-		references: [user.id],
+		references: [users.id],
 	}),
 }));
 
 export const pushSubscriptionRelations = relations(
 	pushSubscription,
 	({ one }) => ({
-		user: one(user, {
+		user: one(users, {
 			fields: [pushSubscription.userId],
-			references: [user.id],
+			references: [users.id],
 		}),
 	}),
 );

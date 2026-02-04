@@ -2,46 +2,46 @@
 
 import Head from "next/head";
 import Image from "next/image";
-import { useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+
+import { authClient } from "@/lib/auth-client";
 
 type NavBarProps = {
 	className?: string;
-	state?: "shake" | "collection" | "profile";
-	defaultState?: "shake" | "collection" | "profile";
-	onStateChange?: (state: "shake" | "collection" | "profile") => void;
 };
 
-export function NavBar({
-	className,
-	state,
-	defaultState = "shake",
-	onStateChange,
-}: NavBarProps) {
-	const isControlled = state !== undefined && onStateChange !== undefined;
-	const [internalState, setInternalState] = useState(
-		() => state ?? defaultState,
-	);
-	const activeState = isControlled ? state : internalState;
+export function NavBar({ className }: NavBarProps) {
+	const pathname = usePathname();
+	const router = useRouter();
+	const { data: session } = authClient.useSession();
 	const rootClassName = [
 		"flex w-[340px] items-center gap-[4px] rounded-[333px] bg-[rgba(255,255,255,0.12)] p-[4px] backdrop-blur-[12px]",
 		className ?? "",
 	]
 		.join(" ")
 		.trim();
-	const isShake = activeState === "shake";
-	const isCollection = activeState === "collection";
-	const isProfile = activeState === "profile";
+	const isRouteActive = (href: string) => {
+		if (!pathname) {
+			return false;
+		}
+		return pathname === href || pathname.startsWith(`${href}/`);
+	};
+	const isShake = isRouteActive("/app/shake");
+	const isCollection = isRouteActive("/app/collections");
+	const isProfile = isRouteActive("/app/profile");
+	const profileHref = session?.user?.id
+		? `/app/profile/${session.user.id}`
+		: "/app/profile";
 	const showText = (value: string) => (
 		<span className="whitespace-nowrap text-[16px] font-bold leading-normal text-[#ff7f11]">
 			{value}
 		</span>
 	);
-
-	const handleChange = (nextState: "shake" | "collection" | "profile") => {
-		if (!isControlled) {
-			setInternalState(nextState);
+	const handleNavigate = (href: string) => {
+		if (!pathname || pathname === href || pathname.startsWith(`${href}/`)) {
+			return;
 		}
-		onStateChange?.(nextState);
+		router.push(href);
 	};
 
 	return (
@@ -74,12 +74,13 @@ export function NavBar({
 						? "min-h-px min-w-px basis-0 grow gap-2.5 bg-white"
 						: "basis-18 shrink-0 grow-0 bg-[rgba(255,255,255,0.12)]",
 				].join(" ")}
-				aria-pressed={isShake}
-				onClick={() => handleChange("shake")}
+				aria-current={isShake ? "page" : undefined}
+				onClick={() => handleNavigate("/app/shake")}
 			>
 				<Image
 					alt=""
 					className="h-6 w-6"
+					preload={true}
 					src={
 						isShake
 							? "/icons/icon-shake-active.svg"
@@ -98,14 +99,15 @@ export function NavBar({
 						? "min-h-px min-w-px basis-0 grow gap-2.5 bg-white"
 						: "basis-18 shrink-0 grow-0 bg-[rgba(255,255,255,0.12)]",
 				].join(" ")}
-				aria-pressed={isCollection}
-				onClick={() => handleChange("collection")}
+				aria-current={isCollection ? "page" : undefined}
+				onClick={() => handleNavigate("/app/collections")}
 			>
 				<Image
 					alt=""
 					className="h-6 w-6"
 					width={24}
 					height={24}
+					preload={true}
 					src={
 						isCollection
 							? "/icons/icon-collection-active.svg"
@@ -122,14 +124,15 @@ export function NavBar({
 						? "min-h-px min-w-px basis-0 grow gap-2.5 bg-white"
 						: "basis-18 shrink-0 grow-0 bg-[rgba(255,255,255,0.12)]",
 				].join(" ")}
-				aria-pressed={isProfile}
-				onClick={() => handleChange("profile")}
+				aria-current={isProfile ? "page" : undefined}
+				onClick={() => handleNavigate(profileHref)}
 			>
 				<Image
 					alt=""
 					className="h-6 w-6"
 					width={24}
 					height={24}
+					preload={true}
 					src={
 						isProfile
 							? "/icons/icon-profile-active.svg"

@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-
-import { SiteHeader } from "@/components/site-header";
-import "./globals.css";
+import "../globals.css";
 
 const geistSans = Geist({
 	variable: "--font-geist-sans",
@@ -15,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-	title: "Next Tokuzou Kit",
-	description: "Next.js + Hono + Better Auth demo",
+	title: "Mootio",
+	description: "About Mootio",
 };
 
 export default function RootLayout({
@@ -25,12 +23,11 @@ export default function RootLayout({
 	children: React.ReactNode;
 }>) {
 	return (
-		<html lang="en">
+		<html lang="ja">
 			<body
-				className={`${geistSans.variable} ${geistMono.variable} min-h-screen bg-zinc-50 text-zinc-900 antialiased`}
+				className={`${geistSans.variable} ${geistMono.variable} min-h-screen text-zinc-900 antialiased`}
 			>
-				<SiteHeader />
-				<main className="mx-auto w-full max-w-5xl px-6 py-10">{children}</main>
+				{children}
 			</body>
 		</html>
 	);

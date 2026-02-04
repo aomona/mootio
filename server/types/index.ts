@@ -12,6 +12,7 @@ export type HonoEnv = {
 		r2: {
 			client: AwsClient;
 			baseUrl: string;
+			publicUrl: string;
 		};
 		db: Database;
 	};
