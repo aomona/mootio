@@ -30,7 +30,6 @@ export function CardPreview({
 }: CardPreviewProps) {
 	const resolvedGradient = resolveGradient(gradient);
 	const gradientStyles = CARD_GRADIENTS[resolvedGradient];
-	const showOverlay = resolvedGradient !== "knowledge";
 	const rootClassName = [
 		"relative flex h-[210px] w-[160px] flex-col items-center justify-center gap-[24px] overflow-hidden rounded-[36px] bg-gradient-to-b p-[36px] shadow-[0px_24px_48px_0px_rgba(0,0,0,0.25)] ring-8 ring-white",
 		gradientStyles.gradientClassName,
@@ -63,21 +62,21 @@ export function CardPreview({
 					src={pictogramSrc}
 				/>
 				<div className="absolute inset-[-14.14%_-10%_-14.15%_-10%]">
-					<img
-						alt={unionAlt}
-						className="block size-full max-w-none"
-						src={unionSrc}
-					/>
+					{resolvedGradient !== "knowledge" && (
+						<img
+							alt={unionAlt}
+							className="block size-full max-w-none"
+							src={unionSrc}
+						/>
+					)}
 				</div>
 			</div>
-			{showOverlay ? (
-				<div
-					className="pointer-events-none absolute inset-0 rounded-[inherit]"
-					style={{
-						boxShadow: `inset 0px 0px 64px 0px ${gradientStyles.glowColor}`,
-					}}
-				/>
-			) : null}
+			<div
+				className="pointer-events-none absolute inset-0 rounded-[inherit]"
+				style={{
+					boxShadow: `inset 0px 0px 64px 0px ${gradientStyles.glowColor}`,
+				}}
+			/>
 		</div>
 	);
 }
