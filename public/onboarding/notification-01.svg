@@ -1,0 +1,11 @@
+<svg width="180" height="180" viewBox="0 0 180 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bellGradient" x1="90" y1="0" x2="90" y2="180" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#C2E812"/>
+      <stop offset="0.55" stop-color="#FF7F11"/>
+      <stop offset="1" stop-color="#EE4266"/>
+    </linearGradient>
+  </defs>
+  <path d="M90 22C71.774 22 57 36.774 57 55V84C57 100.568 47.812 115.236 33 122V132H147V122C132.188 115.236 123 100.568 123 84V55C123 36.774 108.226 22 90 22Z" fill="url(#bellGradient)"/>
+  <path d="M112 132C112 145.255 101.255 156 88 156C74.745 156 64 145.255 64 132H112Z" fill="url(#bellGradient)"/>
+</svg>

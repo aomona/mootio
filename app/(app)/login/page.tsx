@@ -31,7 +31,7 @@ export default function LoginPage() {
 			return;
 		}
 
-		router.push("/app/shake");
+		router.push("/onboarding/notification");
 	};
 
 	return (
