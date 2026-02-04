@@ -12,7 +12,7 @@ export default function Nav({ children }: { children: React.ReactNode }) {
 				height={420}
 			/>
 			{children}
-			<div className="fixed bottom-10 left-1/2 -translate-x-1/2">
+			<div className="fixed bottom-10 left-1/2 z-30 -translate-x-1/2">
 				<NavBar />
 			</div>
 		</>

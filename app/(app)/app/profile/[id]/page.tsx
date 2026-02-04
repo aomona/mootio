@@ -2,9 +2,10 @@
 
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
-
+import { CollectionScreen } from "@/components/collection/collection-screen";
 import { ProfileCard } from "@/components/profile-card";
 import { apiClient } from "@/lib/api-client";
+import { signOut } from "@/lib/auth-actions";
 import { authClient } from "@/lib/auth-client";
 
 const FALLBACK_AVATAR = "/icon512_rounded.png";
@@ -469,6 +470,23 @@ export default function HomePage() {
 					保存中...
 				</p>
 			) : null}
+			<CollectionScreen
+				userId={userId}
+				is_page={true}
+				className="mt-10 mx-2 mb-3"
+			/>
+			{userId === sessionUserId && (
+				<button
+					type="button"
+					onClick={async () => {
+						await signOut();
+						window.location.reload();
+					}}
+					className="rounded-xl text-white bg-red-600 px-6 py-3 mx-auto flex font-bold mt-4 mb-15"
+				>
+					ログアウト
+				</button>
+			)}
 		</div>
 	);
 }

@@ -1,14 +1,19 @@
-import { CardPreview } from "@/components/card-preview";
-import { CardRender } from "@/components/card-render";
+"use client";
 
-const UNION_ICON_SRC =
-	"https://www.figma.com/api/mcp/asset/cdf654c3-8190-4616-b496-5b41e5395e58";
+import { CollectionScreen } from "@/components/collection/collection-screen";
+import { authClient } from "@/lib/auth-client";
 
-export default function HomePage() {
-	return (
-		<>
-			<CardPreview gradient="knowledge" unionSrc={UNION_ICON_SRC} />
-			<CardRender cardId="abs-rare" />
-		</>
-	);
+export default function CollectionsPage() {
+	const { data: session, isPending } = authClient.useSession();
+	const userId = session?.user?.id ?? "";
+
+	if (isPending) {
+		return (
+			<div className="mx-auto w-[345px] pt-20 text-center text-sm text-black/70">
+				読み込み中...
+			</div>
+		);
+	}
+
+	return <CollectionScreen userId={userId} />;
 }

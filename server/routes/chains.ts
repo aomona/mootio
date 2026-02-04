@@ -237,10 +237,12 @@ const chainsRoute = createHonoApp()
 		// チェーンに参加している全ユーザーを取得（フォロー中を優先）
 		const chainUsersWithFollowStatus = await db
 			.select({
+				chainId: chains.id,
 				userId: users.id,
 				userName: users.name,
 				userIconPath: users.imageUrl,
 				isFollowing: followers.followerId,
+				joinedAt: chains.joinedAt,
 			})
 			.from(chains)
 			.innerJoin(users, eq(chains.userId, users.id))
@@ -261,6 +263,25 @@ const chainsRoute = createHonoApp()
 			...userItem,
 			userIcon: buildPublicUrl(publicUrl, userItem.userIconPath),
 		}));
+
+		const sortedByJoinedAt = [...chainUsersWithIcons].sort((a, b) => {
+			const diff = a.joinedAt.getTime() - b.joinedAt.getTime();
+			if (diff !== 0) {
+				return diff;
+			}
+			return a.chainId.localeCompare(b.chainId);
+		});
+		const usersForResponse = sortedByJoinedAt.map((userItem, index) => ({
+			id: userItem.userId,
+			name: userItem.userName,
+			image: userItem.userIcon ?? "",
+			rank: index + 1,
+			is_following:
+				userItem.userId !== user.id && userItem.isFollowing !== null,
+		}));
+		const myRank =
+			usersForResponse.find((userItem) => userItem.id === user.id)?.rank ??
+			null;
 
 		const followingUsers = chainUsersWithIcons.filter(
 			(u) => u.isFollowing !== null && u.userId !== user.id,
@@ -298,6 +319,8 @@ const chainsRoute = createHonoApp()
 				top_user_icon: topUser?.userIcon ?? "",
 				icons: iconUsers.map((u) => u.userIcon ?? ""),
 			},
+			users: usersForResponse,
+			my_rank: myRank,
 		});
 	});
 

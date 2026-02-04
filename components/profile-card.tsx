@@ -1,7 +1,78 @@
 "use client";
 
-import { Camera } from "lucide-react";
+import { Camera, Check } from "lucide-react";
 import type { ChangeEvent, ReactNode } from "react";
+
+const AVATAR_CROP_SIZE = 256;
+const SUPPORTED_CANVAS_TYPES = new Set([
+	"image/png",
+	"image/jpeg",
+	"image/webp",
+]);
+
+const loadImageFromFile = (file: File) =>
+	new Promise<HTMLImageElement>((resolve, reject) => {
+		const objectUrl = URL.createObjectURL(file);
+		const image = new Image();
+		image.onload = () => {
+			URL.revokeObjectURL(objectUrl);
+			resolve(image);
+		};
+		image.onerror = () => {
+			URL.revokeObjectURL(objectUrl);
+			reject(new Error("Failed to load image"));
+		};
+		image.src = objectUrl;
+	});
+
+const resolveCanvasType = (inputType: string) =>
+	SUPPORTED_CANVAS_TYPES.has(inputType) ? inputType : "image/png";
+
+const createCroppedAvatarFile = async (file: File) => {
+	if (file.type && !file.type.startsWith("image/")) {
+		return null;
+	}
+
+	const image = await loadImageFromFile(file);
+	const canvas = document.createElement("canvas");
+	canvas.width = AVATAR_CROP_SIZE;
+	canvas.height = AVATAR_CROP_SIZE;
+	const context = canvas.getContext("2d");
+	if (!context) {
+		return null;
+	}
+
+	const scale = Math.max(
+		AVATAR_CROP_SIZE / image.width,
+		AVATAR_CROP_SIZE / image.height,
+	);
+	const scaledWidth = image.width * scale;
+	const scaledHeight = image.height * scale;
+	const offsetX = (AVATAR_CROP_SIZE - scaledWidth) / 2;
+	const offsetY = (AVATAR_CROP_SIZE - scaledHeight) / 2;
+
+	context.drawImage(image, offsetX, offsetY, scaledWidth, scaledHeight);
+
+	const outputType = resolveCanvasType(file.type);
+	const blob = await new Promise<Blob | null>((resolve) => {
+		const quality =
+			outputType === "image/jpeg" || outputType === "image/webp"
+				? 0.92
+				: undefined;
+		canvas.toBlob(resolve, outputType, quality);
+	});
+
+	if (!blob) {
+		return null;
+	}
+
+	const baseName = file.name.replace(/\.[^/.]+$/, "") || "avatar";
+	const extension = outputType.split("/")[1] ?? "png";
+	return new File([blob], `${baseName}-256.${extension}`, {
+		type: outputType,
+		lastModified: Date.now(),
+	});
+};
 
 type ProfileCardVariant = "has-follow" | "mine" | "editing" | "following";
 
@@ -111,19 +182,22 @@ export function ProfileCard({
 		.join(" ")
 		.trim();
 	const followLabel = isFollowing ? followingButtonLabel : followButtonLabel;
-	const activeEditIcon = editIconActive ?? editIcon;
 	const resolvedEditIcon = isEditing
-		? (activeEditIcon ?? <DefaultEditIcon className="size-6" />)
+		? (editIconActive ?? <Check className="size-6" />)
 		: (editIcon ?? <DefaultEditIcon className="size-6" />);
 	const resolvedName = nameValue ?? name;
 	const resolvedBio = bioValue ?? bio;
 	const showAvatarControl = isAvatarEditable && !!onAvatarChange;
-	const handleAvatarChange = (event: ChangeEvent<HTMLInputElement>) => {
+	const handleAvatarChange = async (event: ChangeEvent<HTMLInputElement>) => {
 		const file = event.currentTarget.files?.[0];
-		if (file) {
-			onAvatarChange?.(file);
-		}
 		event.currentTarget.value = "";
+		if (!file) {
+			return;
+		}
+		const croppedFile = await createCroppedAvatarFile(file).catch(() => null);
+		if (croppedFile) {
+			onAvatarChange?.(croppedFile);
+		}
 	};
 
 	return (

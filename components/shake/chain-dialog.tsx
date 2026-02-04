@@ -15,6 +15,8 @@ type ChainDialogProps = {
 	avatars?: AvatarImage[];
 	message?: ReactNode;
 	messageLines?: [string, string];
+	count?: number;
+	topUserName?: string;
 	firstLabel?: string;
 	firstContent?: ReactNode;
 	starsSrc?: string | StaticImageData;
@@ -69,13 +71,27 @@ const DEFAULT_MESSAGE_LINES: [string, string] = [
 const DEFAULT_FIRST_LABEL = "一番乗り！";
 const DEFAULT_STARS_SRC =
 	"https://www.figma.com/api/mcp/asset/c171cda8-293c-4a03-88de-4c310a7d0ccf";
-const AVATAR_OFFSETS = [0, 24, 48];
 const FALLBACK_AVATAR_STYLE: CSSProperties = {
 	height: "100%",
 	left: "0%",
 	objectFit: "cover",
 	top: "0%",
 	width: "100%",
+};
+
+const buildMessageLines = (
+	count: number,
+	topUserName: string,
+): [string, string] => {
+	if (count <= 0) {
+		return DEFAULT_MESSAGE_LINES;
+	}
+	const resolvedName = topUserName.trim() ? topUserName : "だれか";
+	if (count === 1) {
+		return [`${resolvedName}が`, "このチェーンに参加しています"];
+	}
+	const others = Math.max(0, count - 1);
+	return [`${resolvedName}と他${others}人が`, "このチェーンに参加しています"];
 };
 
 const isRemoteSrc = (src: string | StaticImageData) =>
@@ -86,7 +102,9 @@ export function ChainDialog({
 	type = "some",
 	avatars = DEFAULT_AVATARS,
 	message,
-	messageLines = DEFAULT_MESSAGE_LINES,
+	messageLines,
+	count,
+	topUserName = "",
 	firstLabel = DEFAULT_FIRST_LABEL,
 	firstContent,
 	starsSrc = DEFAULT_STARS_SRC,
@@ -103,53 +121,60 @@ export function ChainDialog({
 	]
 		.join(" ")
 		.trim();
+	const resolvedMessageLines =
+		messageLines ??
+		(typeof count === "number"
+			? buildMessageLines(count, topUserName)
+			: DEFAULT_MESSAGE_LINES);
 	const messageContent = message ?? (
 		<>
-			<p className="mb-0">{messageLines[0]}</p>
-			<p>{messageLines[1]}</p>
+			<p className="mb-0">{resolvedMessageLines[0]}</p>
+			<p>{resolvedMessageLines[1]}</p>
 		</>
 	);
 	const firstContentNode = firstContent ?? firstLabel;
+	const visibleAvatars = avatars.slice(0, 3);
+	const avatarCount = visibleAvatars.length;
+	const avatarStackWidth = avatarCount > 0 ? 48 + (avatarCount - 1) * 24 : 0;
 
 	return (
 		<div className={rootClassName}>
 			{isSome ? (
 				<>
-					<div className="h-[47.999px] relative shrink-0 w-[96px]">
-						{AVATAR_OFFSETS.map((left, index) => {
-							const avatar = avatars[index];
-
-							return (
+					{avatarCount > 0 ? (
+						<div
+							className="h-[47.999px] relative shrink-0"
+							style={{ width: avatarStackWidth }}
+						>
+							{visibleAvatars.map((avatar, index) => (
 								<div
-									key={`${left}-${avatar?.src ?? "empty"}`}
+									key={`${index}-${avatar.src}`}
 									className="absolute border-4 border-[#1e1e1e] border-solid h-[47.999px] rounded-[333px] top-0 w-[48px]"
-									style={{ left, zIndex: index + 1 }}
+									style={{ left: index * 24, zIndex: index + 1 }}
 								>
 									<div className="absolute inset-0 overflow-hidden pointer-events-none rounded-[333px]">
-										{avatar ? (
-											<Image
-												alt={avatar.alt ?? ""}
-												src={avatar.src}
-												width={48}
-												height={48}
-												unoptimized={isRemoteSrc(avatar.src)}
-												className={[
-													"absolute max-w-none",
-													avatar.imageClassName ?? "",
-												]
-													.join(" ")
-													.trim()}
-												style={{
-													...FALLBACK_AVATAR_STYLE,
-													...avatar.imageStyle,
-												}}
-											/>
-										) : null}
+										<Image
+											alt={avatar.alt ?? ""}
+											src={avatar.src}
+											width={48}
+											height={48}
+											unoptimized={isRemoteSrc(avatar.src)}
+											className={[
+												"absolute max-w-none",
+												avatar.imageClassName ?? "",
+											]
+												.join(" ")
+												.trim()}
+											style={{
+												...FALLBACK_AVATAR_STYLE,
+												...avatar.imageStyle,
+											}}
+										/>
 									</div>
 								</div>
-							);
-						})}
-					</div>
+							))}
+						</div>
+					) : null}
 					<div className="content-stretch flex items-center justify-center px-[12px] relative shrink-0">
 						<div
 							className="font-medium leading-[normal] not-italic relative shrink-0 text-[12px] text-white whitespace-nowrap"

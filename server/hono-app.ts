@@ -1,5 +1,6 @@
 import { createHonoApp } from "@/server/create-app";
 import authRoute from "@/server/routes/auth";
+import cardDetailRoute from "@/server/routes/card-detail";
 import cardsRoute from "@/server/routes/cards";
 import chainsRoute from "@/server/routes/chains";
 import followsRoute from "@/server/routes/follows";
@@ -10,6 +11,7 @@ import usersRoute from "@/server/routes/users";
 const app = createHonoApp()
 	.basePath("/api")
 	.route("/auth", authRoute)
+	.route("/cards", cardDetailRoute)
 	.route("/notifications", notificationsRoute)
 	.route("/users", usersRoute)
 	.route("/users", followsRoute)

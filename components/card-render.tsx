@@ -1,9 +1,11 @@
-import { Card, type CardProps } from "@/components/card";
+"use client";
 
-const IMG_ABS_PICTOGRAM =
-	"https://www.figma.com/api/mcp/asset/85a0548c-271f-4fb1-a339-02d660e11fdc";
-const IMG_ABS_OVERLAY =
-	"https://www.figma.com/api/mcp/asset/6329b7ca-ae2d-4300-ab15-bb7166612e1a";
+import type { ReactNode } from "react";
+import { useEffect, useMemo, useState } from "react";
+
+import { Card, type CardGradientName, type CardProps } from "@/components/card";
+import { apiClient } from "@/lib/api-client";
+
 const IMG_ABS_BG_RARE =
 	"https://www.figma.com/api/mcp/asset/e1d44955-a39f-4d72-85bc-b3cfb858272b";
 const IMG_ABS_BG_EPIC =
@@ -18,67 +20,184 @@ const IMG_STARS_RARE =
 	"https://www.figma.com/api/mcp/asset/acdd5554-8672-498a-8902-2244fc2c8d20";
 const IMG_KNOWLEDGE_BG =
 	"https://www.figma.com/api/mcp/asset/c0642eae-191b-46dd-bc7a-ae733416447d";
-const IMG_KNOWLEDGE_PICTOGRAM =
-	"https://www.figma.com/api/mcp/asset/1239ce0c-0fdb-4eac-868a-bfdfa095b992";
+const STORAGE_BASE_URL = "https://storage.mootio.app/card";
 
-const EXERCISE_DESCRIPTION =
-	"おへそを覗き込むように背中を丸め、息を吐ききりながら反動を使わずにゆっくりと腹筋を収縮させるのがポイントです。";
-
-export const CARD_SAMPLE_DATA = {
-	"abs-rare": {
-		variant: "exercise",
-		gradient: "rare",
-		title: "腹筋30秒",
-		description: EXERCISE_DESCRIPTION,
-		backgroundSrc: IMG_ABS_BG_RARE,
-		pictogramSrc: IMG_ABS_PICTOGRAM,
-		pictogramOverlaySrc: IMG_ABS_OVERLAY,
-		starIconSrc: IMG_STARS_RARE,
-	},
-	"abs-epic": {
-		variant: "exercise",
-		gradient: "epic",
-		title: "腹筋45秒",
-		description: EXERCISE_DESCRIPTION,
-		backgroundSrc: IMG_ABS_BG_EPIC,
-		pictogramSrc: IMG_ABS_PICTOGRAM,
-		pictogramOverlaySrc: IMG_ABS_OVERLAY,
-		starIconSrc: IMG_STARS_EPIC,
-	},
-	"abs-legend": {
-		variant: "exercise",
-		gradient: "legend",
-		title: "腹筋60秒",
-		description: EXERCISE_DESCRIPTION,
-		backgroundSrc: IMG_ABS_BG_LEGEND,
-		pictogramSrc: IMG_ABS_PICTOGRAM,
-		pictogramOverlaySrc: IMG_ABS_OVERLAY,
-		starIconSrc: IMG_STARS_LEGEND,
-	},
-	"knowledge-tip": {
-		variant: "knowledge",
-		gradient: "knowledge",
-		headerLabel: "豆知識",
-		title: "腕をぶっ壊す方法",
-		description: EXERCISE_DESCRIPTION,
-		backgroundSrc: IMG_KNOWLEDGE_BG,
-		pictogramSrc: IMG_KNOWLEDGE_PICTOGRAM,
-	},
-} as const satisfies Record<string, CardProps>;
-
-export type CardId = keyof typeof CARD_SAMPLE_DATA;
-
-type CardRenderProps = {
-	cardId: CardId;
-	className?: string;
+const DEFAULT_BACKGROUND_BY_GRADIENT: Record<CardGradientName, string> = {
+	rare: IMG_ABS_BG_RARE,
+	epic: IMG_ABS_BG_EPIC,
+	legend: IMG_ABS_BG_LEGEND,
+	knowledge: IMG_KNOWLEDGE_BG,
 };
 
-export function CardRender({ cardId, className }: CardRenderProps) {
-	const card = CARD_SAMPLE_DATA[cardId];
+const DEFAULT_STAR_ICON_BY_GRADIENT: Record<
+	Exclude<CardGradientName, "knowledge">,
+	string
+> = {
+	rare: IMG_STARS_RARE,
+	epic: IMG_STARS_EPIC,
+	legend: IMG_STARS_LEGEND,
+};
 
-	if (!card) {
+type CardDetailResponse = {
+	id: string;
+	title: string;
+	content: string | null;
+	event: string | null;
+	rarity: string | null;
+};
+
+type CardDetailData = CardDetailResponse & {
+	gradient: CardGradientName;
+};
+
+type CardRenderProps = {
+	cardId: string;
+	className?: string;
+	fallback?: ReactNode;
+	backgroundSrc?: string;
+	starIconSrc?: string;
+};
+
+const resolveGradient = (rarity: string | null): CardGradientName | null => {
+	if (!rarity) {
+		return null;
+	}
+	if (rarity === "legendary") {
+		return "legend";
+	}
+	if (
+		rarity === "rare" ||
+		rarity === "epic" ||
+		rarity === "legend" ||
+		rarity === "knowledge"
+	) {
+		return rarity;
+	}
+	return null;
+};
+
+export function CardRender({
+	cardId,
+	className,
+	fallback,
+	backgroundSrc,
+	starIconSrc,
+}: CardRenderProps) {
+	const [cardData, setCardData] = useState<CardDetailData | null>(null);
+	const [isLoading, setIsLoading] = useState(false);
+	const [hasError, setHasError] = useState(false);
+
+	useEffect(() => {
+		if (!cardId) {
+			setCardData(null);
+			setIsLoading(false);
+			setHasError(false);
+			return;
+		}
+
+		let ignore = false;
+
+		const load = async () => {
+			setIsLoading(true);
+			setHasError(false);
+			setCardData(null);
+
+			try {
+				const response = await apiClient.api.cards[":cardId"].$get({
+					param: { cardId },
+				});
+				if (!response.ok) {
+					if (!ignore) {
+						setHasError(true);
+					}
+					return;
+				}
+				const body = (await response
+					.json()
+					.catch(() => null)) as CardDetailResponse | null;
+				if (!body || !body.event) {
+					if (!ignore) {
+						setHasError(true);
+					}
+					return;
+				}
+				const gradient = resolveGradient(body.rarity);
+				if (!gradient) {
+					if (!ignore) {
+						setHasError(true);
+					}
+					return;
+				}
+				if (!ignore) {
+					setCardData({ ...body, gradient });
+				}
+			} catch {
+				if (!ignore) {
+					setHasError(true);
+				}
+			} finally {
+				if (!ignore) {
+					setIsLoading(false);
+				}
+			}
+		};
+
+		void load();
+
+		return () => {
+			ignore = true;
+		};
+	}, [cardId]);
+
+	const cardProps = useMemo<CardProps | null>(() => {
+		if (!cardData) {
+			return null;
+		}
+		const { gradient, event, title, content } = cardData;
+		const isKnowledge = gradient === "knowledge";
+		const resolvedBackgroundSrc =
+			backgroundSrc ?? DEFAULT_BACKGROUND_BY_GRADIENT[gradient];
+		const pictogramSrc = `${STORAGE_BASE_URL}/${event}/pictogram.svg?b`;
+		const pictogramOverlaySrc = `${STORAGE_BASE_URL}/${event}/pictogram-overlay.svg?b`;
+
+		if (isKnowledge) {
+			return {
+				variant: "knowledge",
+				gradient,
+				headerLabel: "豆知識",
+				title,
+				description: content ?? "",
+				backgroundSrc: resolvedBackgroundSrc,
+				pictogramSrc,
+			};
+		}
+
+		const resolvedStarIconSrc =
+			starIconSrc ??
+			DEFAULT_STAR_ICON_BY_GRADIENT[gradient as "rare" | "epic" | "legend"];
+		return {
+			variant: "exercise",
+			gradient,
+			title,
+			description: content ?? "",
+			backgroundSrc: resolvedBackgroundSrc,
+			pictogramSrc,
+			pictogramOverlaySrc,
+			starIconSrc: resolvedStarIconSrc,
+		};
+	}, [backgroundSrc, cardData, starIconSrc]);
+
+	if (!cardId) {
+		return fallback ?? null;
+	}
+
+	if (hasError) {
+		return fallback ?? null;
+	}
+
+	if (isLoading || !cardProps) {
 		return null;
 	}
 
-	return <Card {...card} className={className} />;
+	return <Card {...cardProps} className={className} />;
 }
