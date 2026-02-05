@@ -14,6 +14,7 @@ import { ShakeBlock } from "@/components/shake-block";
 import { apiClient } from "@/lib/api-client";
 
 const SHAKE_TARGET_COUNT = 20;
+const JST_OFFSET_MS = 9 * 60 * 60 * 1000;
 
 type ChainJoinedResponse = {
 	joined: boolean;
@@ -41,9 +42,8 @@ type ChainJoinResponse = {
 	messages?: string[];
 };
 
-const isInChainWindow = (now = new Date()) => {
-	const offsetMs = 9 * 60 * 1000;
-	const nowJst = new Date(now.getTime() + offsetMs);
+const isJoinBlockedWindow = (now = new Date()) => {
+	const nowJst = new Date(now.getTime() + JST_OFFSET_MS);
 	const hour = nowJst.getUTCHours();
 	return hour >= 22 || hour < 4;
 };
@@ -65,18 +65,29 @@ export function ShakeScreen() {
 	const [cardOverlayOpen, setCardOverlayOpen] = useState(false);
 	const [cardOverlayAnimate, setCardOverlayAnimate] = useState(false);
 	const [cardId, setCardId] = useState<string | null>(null);
+	const [isJoinBlocked, setIsJoinBlocked] = useState(() =>
+		isJoinBlockedWindow(),
+	);
 	const remainingCountRef = useRef(SHAKE_TARGET_COUNT);
 	const completedRef = useRef(false);
 	const forceActiveRef = useRef(false);
 	const { permissionState } = useMotionPermissionStore();
 	const isShaking =
-		permissionState === "granted" && hasStartedShaking && remainingCount > 0;
+		permissionState === "granted" &&
+		hasStartedShaking &&
+		remainingCount > 0 &&
+		!isJoinBlocked;
 
-	const inTimeWindow = isInChainWindow();
 	const isJoined = chainJoined?.joined ?? false;
 	const isEmptyChain = chainLoaded && (chainJoined?.label.count ?? 0) === 0;
-	const shouldForceChainScreen = inTimeWindow || isJoined;
+	const shouldForceChainScreen = isJoinBlocked || isJoined;
 	const shouldBlockInitialRender = !chainLoaded;
+	const resetShakeProgress = useCallback(() => {
+		remainingCountRef.current = SHAKE_TARGET_COUNT;
+		completedRef.current = false;
+		setRemainingCount(SHAKE_TARGET_COUNT);
+		setHasStartedShaking(false);
+	}, []);
 
 	const syncForceState = useCallback(() => {
 		if (shouldForceChainScreen && !forceActiveRef.current) {
@@ -98,6 +109,21 @@ export function ShakeScreen() {
 		setChainScreenOpen(false);
 	}, []);
 
+	useEffect(() => {
+		const updateJoinBlocked = () => {
+			const blocked = isJoinBlockedWindow();
+			setIsJoinBlocked(blocked);
+			if (blocked) {
+				setHasStartedShaking(false);
+			}
+		};
+		updateJoinBlocked();
+		const intervalId = window.setInterval(updateJoinBlocked, 60 * 1000);
+		return () => {
+			window.clearInterval(intervalId);
+		};
+	}, []);
+
 	const loadChainJoined = useCallback(async () => {
 		try {
 			const response = await apiClient.api.chain.joined.$get();
@@ -114,9 +140,19 @@ export function ShakeScreen() {
 	}, []);
 
 	const requestShakeCompletion = useCallback(async () => {
+		if (isJoinBlockedWindow()) {
+			setIsJoinBlocked(true);
+			resetShakeProgress();
+			return;
+		}
 		let awardedCardId: string | null = null;
 		try {
 			const response = await apiClient.api.chain.join.$post();
+			if (response.status === 403) {
+				setIsJoinBlocked(true);
+				resetShakeProgress();
+				return;
+			}
 			if (response.ok) {
 				const body = (await response
 					.json()
@@ -131,7 +167,7 @@ export function ShakeScreen() {
 		if (updated) {
 			setChainJoined(updated);
 		}
-		if (isInChainWindow() || updated?.joined) {
+		if (isJoinBlockedWindow() || updated?.joined) {
 			if (!forceActiveRef.current) {
 				forceActiveRef.current = true;
 				setForceResetEpoch((prev) => prev + 1);
@@ -143,9 +179,19 @@ export function ShakeScreen() {
 		setCompletionOverlayOpen(true);
 		closeChainScreen();
 		setCardOverlayOpen(false);
-	}, [chainJoined?.my_rank, closeChainScreen, loadChainJoined]);
+	}, [
+		chainJoined?.my_rank,
+		closeChainScreen,
+		loadChainJoined,
+		resetShakeProgress,
+	]);
 
 	const handleShake = useCallback(() => {
+		if (isJoinBlockedWindow()) {
+			setIsJoinBlocked(true);
+			setHasStartedShaking(false);
+			return;
+		}
 		syncForceState();
 		setHasStartedShaking(true);
 		if (remainingCountRef.current <= 0) {
@@ -298,6 +344,7 @@ export function ShakeScreen() {
 							className="col-start-1 row-start-1 z-10 -rotate-10"
 							isShaking={isShaking}
 							remainingCount={remainingCount}
+							isJoinBlocked={isJoinBlocked}
 						/>
 					</div>
 				</>

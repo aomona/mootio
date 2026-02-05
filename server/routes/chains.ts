@@ -45,6 +45,13 @@ const getChainDayRange = (now = new Date()) => {
 	return { startUtc, endUtc, chainDayKey };
 };
 
+const isJoinBlockedWindow = (now = new Date()) => {
+	const offsetMs = JST_OFFSET_MINUTES * 60 * 1000;
+	const nowJst = new Date(now.getTime() + offsetMs);
+	const hour = nowJst.getUTCHours();
+	return hour >= 22 || hour < 4;
+};
+
 const chainsRoute = createHonoApp()
 	.get("/users", async (c) => {
 		await getUserOrThrow(c);
@@ -74,6 +81,16 @@ const chainsRoute = createHonoApp()
 		const { user } = await getUserOrThrow(c);
 		const messages: string[] = [];
 		const now = new Date();
+		if (isJoinBlockedWindow(now)) {
+			return c.json(
+				{
+					success: false,
+					joined: false,
+					messages: ["Chain join is closed between 22:00 and 4:00 JST"],
+				},
+				403,
+			);
+		}
 		const { startUtc, endUtc, chainDayKey } = getChainDayRange(now);
 
 		try {
