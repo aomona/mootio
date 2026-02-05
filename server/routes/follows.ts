@@ -2,7 +2,10 @@ import { and, count, eq } from "drizzle-orm";
 import { HTTPException } from "hono/http-exception";
 import { followers, users } from "@/db/schema";
 import { db } from "@/lib/db";
+import { createSendPushNotificationToUser } from "@/server/applications/usecases/send-push-notification";
 import { createHonoApp } from "@/server/create-app";
+import { createPushNotificationRepository } from "@/server/infrastructure/repositories/push-notification";
+import { createPushSubscriptionRepository } from "@/server/infrastructure/repositories/push-subscription";
 import { getUserOrThrow } from "@/server/middleware/auth";
 
 const followsRoute = createHonoApp()
@@ -54,6 +57,31 @@ const followsRoute = createHonoApp()
 				followerId: user.id,
 				followeeId: userId,
 			});
+
+			try {
+				const subscriptionRepo = createPushSubscriptionRepository(c.get("db"));
+				const notificationRepo = createPushNotificationRepository();
+				const sendNotification = createSendPushNotificationToUser(
+					subscriptionRepo.findSubscriptionsByUserId,
+					notificationRepo.sendPushNotification,
+					subscriptionRepo.deleteSubscriptionById,
+				);
+				const baseUrl = process.env.BETTER_AUTH_URL;
+				if (!baseUrl) {
+					throw new Error("BETTER_AUTH_URL is missing");
+				}
+				const profileUrl = new URL(
+					`/app/profile/${user.id}`,
+					baseUrl,
+				).toString();
+				await sendNotification(userId, {
+					title: "フォロー通知",
+					body: `${user.name}さんにフォローされました！！`,
+					url: profileUrl,
+				});
+			} catch (notificationError) {
+				console.error("Failed to send follow notification:", notificationError);
+			}
 
 			return c.json({
 				success: true,
