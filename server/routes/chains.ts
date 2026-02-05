@@ -1,4 +1,4 @@
-import { and, eq, gte, lt, sql } from "drizzle-orm";
+import { and, eq, gte, inArray, lt, sql } from "drizzle-orm";
 import { uuidv7 } from "uuidv7";
 import {
 	cards,
@@ -202,25 +202,55 @@ const chainsRoute = createHonoApp()
 					.select({ userId: followers.followerId })
 					.from(followers)
 					.where(eq(followers.followeeId, user.id));
+				const followerIds = userFollowers.map((follower) => follower.userId);
+				let followersToNotify = userFollowers;
 
-				const subscriptionRepo = createPushSubscriptionRepository(c.get("db"));
-				const notificationRepo = createPushNotificationRepository();
-				const sendNotification = createSendPushNotificationToUser(
-					subscriptionRepo.findSubscriptionsByUserId,
-					notificationRepo.sendPushNotification,
-					subscriptionRepo.deleteSubscriptionById,
-				);
+				if (followerIds.length > 0) {
+					const joinedFollowers = await db
+						.select({ userId: chains.userId })
+						.from(chains)
+						.where(
+							and(
+								inArray(chains.userId, followerIds),
+								gte(chains.joinedAt, startUtc),
+								lt(chains.joinedAt, endUtc),
+							),
+						);
+					const joinedFollowerIds = new Set(
+						joinedFollowers.map((follower) => follower.userId),
+					);
+					followersToNotify = userFollowers.filter(
+						(follower) => !joinedFollowerIds.has(follower.userId),
+					);
+				}
 
-				// 各フォロワーに通知
-				await Promise.allSettled(
-					userFollowers.map((follower) =>
-						sendNotification(follower.userId, {
-							title: "New Chain Activity",
-							body: `${user.name} joined the chain!`,
-							url: "/",
-						}),
-					),
-				);
+				if (followersToNotify.length > 0) {
+					const subscriptionRepo = createPushSubscriptionRepository(
+						c.get("db"),
+					);
+					const notificationRepo = createPushNotificationRepository();
+					const sendNotification = createSendPushNotificationToUser(
+						subscriptionRepo.findSubscriptionsByUserId,
+						notificationRepo.sendPushNotification,
+						subscriptionRepo.deleteSubscriptionById,
+					);
+					const baseUrl = process.env.BETTER_AUTH_URL;
+					if (!baseUrl) {
+						throw new Error("BETTER_AUTH_URL is missing");
+					}
+					const chainUrl = new URL("/app/shake", baseUrl).toString();
+
+					// 各フォロワーに通知
+					await Promise.allSettled(
+						followersToNotify.map((follower) =>
+							sendNotification(follower.userId, {
+								title: "New Chain Activity",
+								body: `${user.name}さんもチェーンに加わりましたよ！`,
+								url: chainUrl,
+							}),
+						),
+					);
+				}
 			} catch (notificationError) {
 				// 通知の失敗はログに記録するだけで、全体の処理は続行
 				console.error("Failed to send notifications:", notificationError);
