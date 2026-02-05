@@ -43,11 +43,11 @@ export function TrophyCard({
 
 	return (
 		<div className={rootClassName}>
-			<div className="relative h-[131.606px] w-[120px] shrink-0">
+			<div className="relative h-37.5 w-30 shrink-0">
 				<div className="absolute inset-0 overflow-hidden">
 					<img
 						alt={title}
-						className="absolute left-[-48.37%] top-0 h-full w-[194.97%] max-w-none object-cover"
+						className="absolute left-[-48.37%] top-0 h-full w-[194.97%] max-w-none object-contain"
 						src={resolvedThumbnail || ""}
 					/>
 				</div>
