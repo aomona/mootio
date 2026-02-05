@@ -208,7 +208,7 @@ export function CollectionScreen({
 					type="button"
 					aria-label="カードの獲得枚数を表示"
 					onClick={() => handleCardClick(card.id)}
-					className="shrink-0 rounded-[36px] border-0 bg-transparent p-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+					className="shrink-0 rounded-[36px] border-0 bg-transparent p-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 my-2.5"
 				>
 					<CardPreview
 						className="shrink-0"
