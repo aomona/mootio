@@ -10,6 +10,7 @@ type ShakeMarkProps = {
 	className?: string;
 	isShaking?: boolean;
 	remainingCount?: number;
+	isJoinBlocked?: boolean;
 };
 
 const SHAKE_TEXT_GRADIENT =
@@ -38,20 +39,25 @@ export function ShakeMark({
 	className,
 	isShaking = false,
 	remainingCount = 0,
+	isJoinBlocked = false,
 }: ShakeMarkProps) {
 	const { permissionState, requestPermission } = useMotionPermissionStore();
+	const shouldShowJoinBlocked = !isShaking && isJoinBlocked;
 	const shouldPromptPermission = !isShaking && permissionState === "prompt";
 	const isPermissionDenied = !isShaking && permissionState === "denied";
-	const canRequestPermission = shouldPromptPermission && !!requestPermission;
+	const canRequestPermission =
+		shouldPromptPermission && !!requestPermission && !shouldShowJoinBlocked;
 	const rootClassName = ["relative size-[258px] shrink-0", className ?? ""]
 		.join(" ")
 		.trim();
 	const displayCount = remainingCount;
-	const headlineText = shouldPromptPermission
-		? "TOUCH!!"
-		: isPermissionDenied
-			? "RESTART"
-			: "SHAKE!!";
+	const headlineText = shouldShowJoinBlocked
+		? "CLOSED"
+		: shouldPromptPermission
+			? "TOUCH!!"
+			: isPermissionDenied
+				? "RESTART"
+				: "SHAKE!!";
 
 	const handleRequestPermission = useCallback(() => {
 		if (!canRequestPermission) {
@@ -128,6 +134,11 @@ export function ShakeMark({
 							<span className="text-[64px] leading-normal">{displayCount}</span>
 							<span className="text-[24px] font-black leading-normal">回</span>
 						</p>
+					) : shouldShowJoinBlocked ? (
+						<>
+							<p>22:00-4:00は参加できません</p>
+							<p>4:00-22:00に参加できます</p>
+						</>
 					) : shouldPromptPermission ? (
 						<>
 							<p>ここを押して</p>
