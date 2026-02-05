@@ -244,7 +244,7 @@ const chainsRoute = createHonoApp()
 					await Promise.allSettled(
 						followersToNotify.map((follower) =>
 							sendNotification(follower.userId, {
-								title: "New Chain Activity",
+								title: "今日のチェーンに参加しませんか？",
 								body: `${user.name}さんもチェーンに加わりましたよ！`,
 								url: chainUrl,
 							}),
