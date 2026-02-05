@@ -75,7 +75,7 @@ export default function SignupPage() {
 							/>
 							<AuthInput
 								label="メール"
-								placeholder="mail.example.com"
+								placeholder="mail@example.com"
 								type="email"
 								value={email}
 								onChange={(event) => setEmail(event.target.value)}
@@ -85,7 +85,7 @@ export default function SignupPage() {
 							/>
 							<AuthInput
 								label="パスワード"
-								placeholder="************"
+								placeholder="半角英数字8文字以上"
 								type="password"
 								value={password}
 								onChange={(event) => setPassword(event.target.value)}
