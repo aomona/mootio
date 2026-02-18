@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import "../globals.css";
+import "./globals.css";
+import PwaGuard from "@/components/pwa-guard";
 
 const geistSans = Geist({
 	variable: "--font-geist-sans",
@@ -14,7 +15,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
 	title: "Mootio",
-	description: "About Mootio",
+	description: "Mootio App",
 };
 
 export default function RootLayout({
@@ -25,9 +26,10 @@ export default function RootLayout({
 	return (
 		<html lang="ja">
 			<body
-				className={`${geistSans.variable} ${geistMono.variable} min-h-screen text-zinc-900 antialiased`}
+				className={`${geistSans.variable} ${geistMono.variable} min-h-screen text-zinc-900 antialiased bg-[#C2E812]`}
 			>
-				{children}
+				<div className="fixed -z-1 w-screen h-screen bg-[linear-gradient(176deg,#C2E812_2.43%,#FF7F11_63.35%,#EE4266_87.27%)]"></div>
+				<PwaGuard>{children}</PwaGuard>
 			</body>
 		</html>
 	);
