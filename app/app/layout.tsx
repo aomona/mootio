@@ -14,7 +14,6 @@ export default async function Nav({ children }: { children: React.ReactNode }) {
 		userId = session?.user.id;
 	} catch (error) {
 		console.error("Failed to get session in app layout Nav", error);
-		userId = undefined;
 	}
 
 	return (
