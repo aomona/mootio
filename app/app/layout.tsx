@@ -1,5 +1,6 @@
 import { headers } from "next/headers";
 import Image from "next/image";
+
 import { NavBar } from "@/components/nav-bar";
 import { auth } from "@/lib/auth";
 
