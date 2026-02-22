@@ -1,7 +1,14 @@
+import { headers } from "next/headers";
 import Image from "next/image";
-import { NavBar } from "@/components/nav-bar";
 
-export default function Nav({ children }: { children: React.ReactNode }) {
+import { NavBar } from "@/components/nav-bar";
+import { auth } from "@/lib/auth";
+
+export default async function Nav({ children }: { children: React.ReactNode }) {
+	const session = await auth.api.getSession({
+		headers: await headers(),
+	});
+	const userId = session?.user.id;
 	return (
 		<>
 			<Image
@@ -13,7 +20,7 @@ export default function Nav({ children }: { children: React.ReactNode }) {
 			/>
 			{children}
 			<div className="fixed bottom-10 left-1/2 z-30 -translate-x-1/2">
-				<NavBar />
+				<NavBar userId={userId} />
 			</div>
 		</>
 	);

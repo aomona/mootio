@@ -1,19 +1,16 @@
 "use client";
 
-import Head from "next/head";
 import Image from "next/image";
-import { usePathname, useRouter } from "next/navigation";
-
-import { authClient } from "@/lib/auth-client";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 type NavBarProps = {
+	userId?: string;
 	className?: string;
 };
 
-export function NavBar({ className }: NavBarProps) {
+export function NavBar({ className, userId }: NavBarProps) {
 	const pathname = usePathname();
-	const router = useRouter();
-	const { data: session } = authClient.useSession();
 	const rootClassName = [
 		"flex w-[340px] items-center gap-[4px] rounded-[333px] bg-[rgba(255,255,255,0.12)] p-[4px] backdrop-blur-[12px]",
 		className ?? "",
@@ -29,118 +26,75 @@ export function NavBar({ className }: NavBarProps) {
 	const isShake = isRouteActive("/app/shake");
 	const isCollection = isRouteActive("/app/collections");
 	const isProfile = isRouteActive("/app/profile");
-	const profileHref = session?.user?.id
-		? `/app/profile/${session.user.id}`
-		: "/app/profile";
+	const profileHref = userId ? `/app/profile/${userId}` : "/app/profile";
+
+	return (
+		<nav className={rootClassName} aria-label="Bottom navigation">
+			<NavLink
+				href="/app/shake"
+				isEnabled={isShake}
+				activeIconUrl="/icons/icon-shake-active.svg"
+				inactiveIconUrl="/icons/icon-shake-inactive.svg"
+				label="Shake!"
+			/>
+			<NavLink
+				href="/app/collections"
+				isEnabled={isCollection}
+				activeIconUrl="/icons/icon-collection-active.svg"
+				inactiveIconUrl="/icons/icon-collection-inactive.svg"
+				label="コレクション"
+			/>
+			<NavLink
+				href={profileHref}
+				isEnabled={isProfile}
+				activeIconUrl="/icons/icon-profile-active.svg"
+				inactiveIconUrl="/icons/icon-profile-inactive.svg"
+				label="プロフィール"
+			/>
+		</nav>
+	);
+}
+
+function NavLink({
+	href,
+	isEnabled,
+	activeIconUrl,
+	inactiveIconUrl,
+	label,
+}: {
+	href: string;
+	isEnabled: boolean;
+	activeIconUrl: string;
+	inactiveIconUrl: string;
+	label: string;
+}) {
 	const showText = (value: string) => (
 		<span className="whitespace-nowrap text-[16px] font-bold leading-normal text-[#ff7f11]">
 			{value}
 		</span>
 	);
-	const handleNavigate = (href: string) => {
-		if (!pathname || pathname === href || pathname.startsWith(`${href}/`)) {
-			return;
-		}
-		router.push(href);
-	};
-
 	return (
-		<nav className={rootClassName} aria-label="Bottom navigation">
-			<Head>
-				<link rel="preload" href="/icons/icon-shake-active.svg" as="image" />
-				<link rel="preload" href="/icons/icon-shake-inactive.svg" as="image" />
-				<link
-					rel="preload"
-					href="/icons/icon-collection-active.svg"
-					as="image"
-				/>
-				<link
-					rel="preload"
-					href="/icons/icon-collection-inactive.svg"
-					as="image"
-				/>
-				<link rel="preload" href="/icons/icon-profile-active.svg" as="image" />
-				<link
-					rel="preload"
-					href="/icons/icon-profile-inactive.svg"
-					as="image"
-				/>
-			</Head>
-			<button
-				type="button"
-				className={[
-					"flex items-center justify-center overflow-hidden rounded-[999px] p-6 transition-[flex-basis,flex-grow,background-color] duration-300 ease-out",
-					isShake
-						? "min-h-px min-w-px basis-0 grow gap-2.5 bg-white"
-						: "basis-18 shrink-0 grow-0 bg-[rgba(255,255,255,0.12)]",
-				].join(" ")}
-				aria-current={isShake ? "page" : undefined}
-				onClick={() => handleNavigate("/app/shake")}
-			>
-				<Image
-					alt=""
-					className="h-6 w-6"
-					preload={true}
-					src={
-						isShake
-							? "/icons/icon-shake-active.svg"
-							: "/icons/icon-shake-inactive.svg"
-					}
-					width={24}
-					height={24}
-				/>
-				{isShake ? showText("Shake!") : null}
-			</button>
-			<button
-				type="button"
-				className={[
-					"flex items-center justify-center overflow-hidden rounded-[999px] p-6 transition-[flex-basis,flex-grow,background-color] duration-300 ease-out",
-					isCollection
-						? "min-h-px min-w-px basis-0 grow gap-2.5 bg-white"
-						: "basis-18 shrink-0 grow-0 bg-[rgba(255,255,255,0.12)]",
-				].join(" ")}
-				aria-current={isCollection ? "page" : undefined}
-				onClick={() => handleNavigate("/app/collections")}
-			>
-				<Image
-					alt=""
-					className="h-6 w-6"
-					width={24}
-					height={24}
-					preload={true}
-					src={
-						isCollection
-							? "/icons/icon-collection-active.svg"
-							: "/icons/icon-collection-inactive.svg"
-					}
-				/>
-				{isCollection ? showText("コレクション") : null}
-			</button>
-			<button
-				type="button"
-				className={[
-					"flex items-center justify-center overflow-hidden rounded-[999px] p-6 transition-[flex-basis,flex-grow,background-color] duration-300 ease-out",
-					isProfile
-						? "min-h-px min-w-px basis-0 grow gap-2.5 bg-white"
-						: "basis-18 shrink-0 grow-0 bg-[rgba(255,255,255,0.12)]",
-				].join(" ")}
-				aria-current={isProfile ? "page" : undefined}
-				onClick={() => handleNavigate(profileHref)}
-			>
-				<Image
-					alt=""
-					className="h-6 w-6"
-					width={24}
-					height={24}
-					preload={true}
-					src={
-						isProfile
-							? "/icons/icon-profile-active.svg"
-							: "/icons/icon-profile-inactive.svg"
-					}
-				/>
-				{isProfile ? showText("プロフィール") : null}
-			</button>
-		</nav>
+		<Link
+			prefetch
+			href={href}
+			className={[
+				"flex items-center justify-center overflow-hidden rounded-[999px] p-6 transition-[flex-basis,flex-grow,background-color] duration-300 ease-out",
+				isEnabled
+					? "min-h-px min-w-px basis-0 grow gap-2.5 bg-white"
+					: "basis-18 shrink-0 grow-0 bg-[rgba(255,255,255,0.12)]",
+			].join(" ")}
+			aria-current={isEnabled ? "page" : undefined}
+			aria-label={label}
+		>
+			<Image
+				alt=""
+				aria-hidden="true"
+				className="h-6 w-6"
+				width={24}
+				height={24}
+				src={isEnabled ? activeIconUrl : inactiveIconUrl}
+			/>
+			{isEnabled ? showText(label) : null}
+		</Link>
 	);
 }
