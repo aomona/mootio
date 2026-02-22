@@ -87,7 +87,8 @@ function NavLink({
 			aria-label={label}
 		>
 			<Image
-				alt={`${label}Icon`}
+				alt=""
+				aria-hidden="true"
 				className="h-6 w-6"
 				width={24}
 				height={24}
